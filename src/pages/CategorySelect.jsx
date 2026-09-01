@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { doc, updateDoc } from 'firebase/firestore'
 import { db } from '../firebase'
+import ActiveList from './ActiveList'
 
 const CATEGORIES = [
   { id: 'sex', title: 'সেক্স', emoji: '🔥' },
@@ -10,11 +11,10 @@ const CATEGORIES = [
 ]
 
 function CategorySelect({ user, profile }) {
-  const [selected, setSelected] = useState(null)
+  const [selectedCategory, setSelectedCategory] = useState(null)
   const [loading, setLoading] = useState(false)
 
   const handleSelect = async (categoryId) => {
-    setSelected(categoryId)
     setLoading(true)
 
     try {
@@ -26,14 +26,25 @@ function CategorySelect({ user, profile }) {
         updatedAt: new Date().toISOString()
       })
 
-      // পরে এখানে Active লিস্ট পেজে নিয়ে যাব
-      alert(`${CATEGORIES.find(c => c.id === categoryId)?.title} ক্যাটাগরিতে প্রবেশ করেছেন`)
+      setSelectedCategory(categoryId)
     } catch (err) {
       console.error(err)
       alert('সমস্যা হয়েছে, আবার চেষ্টা করুন')
     } finally {
       setLoading(false)
     }
+  }
+
+  // ক্যাটাগরি সিলেক্ট হয়ে গেলে Active লিস্ট দেখাবে
+  if (selectedCategory) {
+    return (
+      <ActiveList
+        user={user}
+        profile={profile}
+        category={selectedCategory}
+        onBack={() => setSelectedCategory(null)}
+      />
+    )
   }
 
   return (
@@ -52,7 +63,7 @@ function CategorySelect({ user, profile }) {
             style={{
               padding: '18px',
               borderRadius: '12px',
-              background: selected === cat.id ? '#0088cc' : '#1a1a1a',
+              background: '#1a1a1a',
               border: '1px solid #333',
               color: '#fff',
               fontSize: '18px',
