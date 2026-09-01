@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react'
-import { collection, query, where, onSnapshot } from 'firebase/firestore'
+import { collection, query, where, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '../firebase'
 
 function ActiveList({ user, profile, category, onBack }) {
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedUser, setSelectedUser] = useState(null)
+  const [sending, setSending] = useState(false)
+  const [sentMessage, setSentMessage] = useState('')
 
-  // বিপরীত লিঙ্গ বের করা
   const oppositeGender = profile.gender === 'male' ? 'female' : 'male'
 
   useEffect(() => {
@@ -21,7 +22,6 @@ function ActiveList({ user, profile, category, onBack }) {
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const list = []
       snapshot.forEach((doc) => {
-        // নিজেকে লিস্টে না দেখানো
         if (doc.id !== String(user.id)) {
           list.push({ id: doc.id, ...doc.data() })
         }
@@ -33,11 +33,43 @@ function ActiveList({ user, profile, category, onBack }) {
     return () => unsubscribe()
   }, [category, oppositeGender, user.id])
 
-  // ইউজার সিলেক্ট করলে ডিটেইলস দেখানো
+  const sendRequest = async () => {
+    if (!selectedUser) return
+    setSending(true)
+    setSentMessage('')
+
+    try {
+      await addDoc(collection(db, 'requests'), {
+        fromUserId: String(user.id),
+        toUserId: selectedUser.id,
+        fromNickname: profile.nickname,
+        fromAge: profile.age,
+        fromGender: profile.gender,
+        toNickname: selectedUser.nickname,
+        status: 'pending',
+        createdAt: serverTimestamp()
+      })
+
+      setSentMessage('রিকোয়েস্ট পাঠানো হয়েছে!')
+    } catch (err) {
+      console.error(err)
+      setSentMessage('রিকোয়েস্ট পাঠাতে সমস্যা হয়েছে')
+    } finally {
+      setSending(false)
+    }
+  }
+
+  // ইউজার ডিটেইলস ভিউ
   if (selectedUser) {
     return (
       <div style={{ padding: '20px', maxWidth: '420px', margin: '0 auto', minHeight: '100vh', background: '#0f0f0f', color: '#fff' }}>
-        <button onClick={() => setSelectedUser(null)} style={{ background: 'transparent', color: '#0088cc', marginBottom: '20px', fontSize: '16px' }}>
+        <button
+          onClick={() => {
+            setSelectedUser(null)
+            setSentMessage('')
+          }}
+          style={{ background: 'transparent', color: '#0088cc', marginBottom: '20px', fontSize: '16px' }}
+        >
           ← ফিরে যান
         </button>
 
@@ -49,19 +81,32 @@ function ActiveList({ user, profile, category, onBack }) {
           </p>
 
           <button
+            onClick={sendRequest}
+            disabled={sending || sentMessage.includes('পাঠানো হয়েছে')}
             style={{
               width: '100%',
               padding: '15px',
               borderRadius: '10px',
-              background: '#0088cc',
+              background: sentMessage.includes('পাঠানো হয়েছে') ? '#333' : '#0088cc',
               color: '#fff',
               fontSize: '16px',
-              fontWeight: '600'
+              fontWeight: '600',
+              opacity: sending ? 0.7 : 1
             }}
-            onClick={() => alert('রিকোয়েস্ট সিস্টেম পরের ধাপে যোগ করা হবে')}
           >
-            রিকোয়েস্ট পাঠান
+            {sending ? 'পাঠানো হচ্ছে...' : sentMessage.includes('পাঠানো হয়েছে') ? 'রিকোয়েস্ট পাঠানো হয়েছে' : 'রিকোয়েস্ট পাঠান'}
           </button>
+
+          {sentMessage && (
+            <p style={{
+              textAlign: 'center',
+              marginTop: '12px',
+              color: sentMessage.includes('পাঠানো হয়েছে') ? '#4ade80' : '#f87171',
+              fontSize: '14px'
+            }}>
+              {sentMessage}
+            </p>
+          )}
         </div>
       </div>
     )
@@ -83,9 +128,7 @@ function ActiveList({ user, profile, category, onBack }) {
       {loading ? (
         <p style={{ textAlign: 'center', color: '#aaa' }}>লোড হচ্ছে...</p>
       ) : users.length === 0 ? (
-        <p style={{ textAlign: 'center', color: '#aaa', marginTop: '40px' }}>
-          এখন কেউ অনলাইন নেই
-        </p>
+        <p style={{ textAlign: 'center', color: '#aaa', marginTop: '40px' }}>এখন কেউ অনলাইন নেই</p>
       ) : (
         <div style={{ display: 'grid', gap: '10px' }}>
           {users.map((u) => (
@@ -99,8 +142,7 @@ function ActiveList({ user, profile, category, onBack }) {
                 border: '1px solid #333',
                 display: 'flex',
                 justifyContent: 'space-between',
-                alignItems: 'center',
-                cursor: 'pointer'
+                alignItems: 'center'
               }}
             >
               <div>
