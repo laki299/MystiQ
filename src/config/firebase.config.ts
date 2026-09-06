@@ -4,13 +4,14 @@ import { getDatabase } from 'firebase/database';
 import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID
+  apiKey: "AIzaSyBKvBV_DUOtbkBd6LHWgXBJ24oCwfmsopU",
+  authDomain: "mystiq-b1a8c.firebaseapp.com",
+  databaseURL: "https://mystiq-b1a8c-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "mystiq-b1a8c",
+  storageBucket: "mystiq-b1a8c.firebasestorage.app",
+  messagingSenderId: "664320867996",
+  appId: "1:664320867996:web:328009badd11aa0dbef759",
+  measurementId: "G-K2NQ6MZR5P"
 };
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
