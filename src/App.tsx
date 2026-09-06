@@ -4,7 +4,8 @@ import { useExpiredCounter } from './hooks/useExpiredCounter';
 import { usePresence } from './hooks/usePresence';
 import { QuickSweepBanner } from './components/common/QuickSweepBanner';
 import { ProfileEditModal } from './components/profile/ProfileEditModal';
-import { CategoryList } from './components/categories/CategoryList';
+import { CategoryList, CATEGORIES } from './components/categories/CategoryList';
+import { ChatRoom } from './components/chat/ChatRoom';
 import { UserProfile } from './types/user.types';
 
 export const App: React.FC = () => {
@@ -41,6 +42,8 @@ export const App: React.FC = () => {
     );
   }
 
+  const currentCategoryObj = CATEGORIES.find(c => c.id === selectedCategory);
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 p-4 max-w-md mx-auto relative pb-24">
       {/* Header Profile Card */}
@@ -48,7 +51,7 @@ export const App: React.FC = () => {
         <div className="flex items-center justify-between border-b border-slate-800/80 pb-2.5">
           <h1 className="text-lg font-extrabold text-purple-400 tracking-wide">MYSTIQ</h1>
           <span className="bg-emerald-950 text-emerald-400 border border-emerald-800 text-[10px] px-2 py-0.5 rounded-full font-semibold">
-            Realtime
+            Realtime Chat
           </span>
         </div>
 
@@ -77,22 +80,14 @@ export const App: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Room Selection View */}
-      {selectedCategory ? (
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-            <h2 className="text-sm font-bold text-slate-200 capitalize">Room: {selectedCategory}</h2>
-            <button
-              onClick={() => setSelectedCategory(null)}
-              className="text-xs text-slate-400 hover:text-white bg-slate-950 border border-slate-800 px-2.5 py-1 rounded-lg"
-            >
-              ← Leave Room
-            </button>
-          </div>
-          <p className="text-xs text-slate-400 text-center py-8">
-            [Phase 5-এ এই রুমের জন্য Realtime Auto-Expiring Instant Chat System কানেক্ট করা হবে]
-          </p>
-        </div>
+      {/* Main Room Selection View or Chat Room */}
+      {selectedCategory && profile && currentCategoryObj ? (
+        <ChatRoom
+          categoryId={selectedCategory}
+          categoryName={currentCategoryObj.name}
+          profile={profile}
+          onBack={() => setSelectedCategory(null)}
+        />
       ) : (
         <CategoryList onSelectCategory={(catId) => setSelectedCategory(catId)} />
       )}
