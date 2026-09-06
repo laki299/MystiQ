@@ -4,8 +4,10 @@ import { useExpiredCounter } from './hooks/useExpiredCounter';
 import { usePresence } from './hooks/usePresence';
 import { QuickSweepBanner } from './components/common/QuickSweepBanner';
 import { ProfileEditModal } from './components/profile/ProfileEditModal';
+import { UserProfileModal } from './components/profile/UserProfileModal';
 import { CategoryList, CATEGORIES } from './components/categories/CategoryList';
 import { ChatRoom } from './components/chat/ChatRoom';
+import { DMChatRoom } from './components/chat/DMChatRoom';
 import { UserProfile } from './types/user.types';
 
 export const App: React.FC = () => {
@@ -14,13 +16,16 @@ export const App: React.FC = () => {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
+  // DM & Profile View State
+  const [inspectUid, setInspectUid] = useState<string | null>(null);
+  const [activeDMUser, setActiveDMUser] = useState<UserProfile | null>(null);
+
   React.useEffect(() => {
     if (initialProfile) setProfile(initialProfile);
   }, [initialProfile]);
 
   const { count, executeSweep, isDeleting } = useExpiredCounter(profile?.uid || null);
 
-  // Active Category Presence Engine
   usePresence(selectedCategory, profile);
 
   if (isLoading) {
@@ -51,7 +56,7 @@ export const App: React.FC = () => {
         <div className="flex items-center justify-between border-b border-slate-800/80 pb-2.5">
           <h1 className="text-lg font-extrabold text-purple-400 tracking-wide">MYSTIQ</h1>
           <span className="bg-emerald-950 text-emerald-400 border border-emerald-800 text-[10px] px-2 py-0.5 rounded-full font-semibold">
-            Realtime Chat
+            Realtime
           </span>
         </div>
 
@@ -73,15 +78,21 @@ export const App: React.FC = () => {
 
           <button
             onClick={() => setIsEditOpen(true)}
-            className="text-xs bg-purple-950 border border-purple-800 text-purple-300 px-3 py-1.5 rounded-xl hover:bg-purple-900 transition-colors font-medium"
+            className="text-xs bg-purple-950 border border-purple-800 text-purple-300 px-3 py-1.5 rounded-xl hover:bg-purple-900 font-medium"
           >
             Edit
           </button>
         </div>
       </div>
 
-      {/* Main Room Selection View or Chat Room */}
-      {selectedCategory && profile && currentCategoryObj ? (
+      {/* Navigation Router */}
+      {activeDMUser && profile ? (
+        <DMChatRoom
+          currentUser={profile}
+          targetUser={activeDMUser}
+          onBack={() => setActiveDMUser(null)}
+        />
+      ) : selectedCategory && profile && currentCategoryObj ? (
         <ChatRoom
           categoryId={selectedCategory}
           categoryName={currentCategoryObj.name}
@@ -99,7 +110,7 @@ export const App: React.FC = () => {
         isDeleting={isDeleting} 
       />
 
-      {/* Edit Profile Modal */}
+      {/* Modals */}
       {profile && (
         <ProfileEditModal
           profile={profile}
@@ -108,6 +119,13 @@ export const App: React.FC = () => {
           onSaved={(updated) => setProfile(updated)}
         />
       )}
+
+      <UserProfileModal
+        targetUid={inspectUid}
+        isOpen={Boolean(inspectUid)}
+        onClose={() => setInspectUid(null)}
+        onStartDM={(targetUser) => setActiveDMUser(targetUser)}
+      />
     </div>
   );
 };
