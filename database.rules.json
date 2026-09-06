@@ -1,0 +1,49 @@
+{
+  "rules": {
+    "users": {
+      "$uid": {
+        ".read": "auth != null",
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    },
+    "presence": {
+      "$categoryId": {
+        "$uid": {
+          ".read": "auth != null",
+          ".write": "auth != null && auth.uid === $uid"
+        }
+      }
+    },
+    "chats": {
+      "$categoryId": {
+        ".read": "auth != null",
+        "$messageId": {
+          ".write": "auth != null && newData.child('senderUid').val() === auth.uid"
+        }
+      }
+    },
+    "direct_chats": {
+      "$chatId": {
+        ".read": "auth != null && $chatId.contains(auth.uid)",
+        "messages": {
+          "$messageId": {
+            ".write": "auth != null && $chatId.contains(auth.uid) && newData.child('senderUid').val() === auth.uid"
+          }
+        }
+      }
+    },
+    "blocks": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    },
+    "reports": {
+      ".read": false,
+      "$reportId": {
+        ".write": "auth != null && newData.child('reporterUid').val() === auth.uid"
+      }
+    }
+  }
+}
+
