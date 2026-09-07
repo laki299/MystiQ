@@ -1,5 +1,5 @@
 import { rtdb } from '../config/firebase.config';
-import { ref, get, query, orderByChild, endAt, remove, push, set, update } from 'firebase/database';
+import { ref, get, query, orderByChild, limitToLast, endAt, remove, push, set, update } from 'firebase/database';
 import { AuditLog, AdminRole, SystemAnalytics, AdItem, AppSettings, UserReport } from '../types/admin';
 
 // Audit Log রেকর্ড তৈরি
@@ -169,7 +169,6 @@ export const updateAppSettings = async (
 
 // ------------------- USER REPORTS SERVICES -------------------
 
-// সব রিপোর্ট ফেচ করা
 export const fetchUserReports = async (): Promise<UserReport[]> => {
   const snapshot = await get(ref(rtdb, 'reports'));
   if (!snapshot.exists()) return [];
@@ -183,7 +182,6 @@ export const fetchUserReports = async (): Promise<UserReport[]> => {
   return reportsList.sort((a, b) => b.createdAt - a.createdAt);
 };
 
-// রিপোর্ট রিভিউ ও মডারেশন অ্যাকশন নেওয়া
 export const resolveUserReport = async (
   adminUid: string,
   role: AdminRole,
@@ -197,7 +195,6 @@ export const resolveUserReport = async (
     actionTaken
   });
 
-  // যদি অ্যাকশন হিসেবে ব্লক বা সাসপেন্ড করা হয় তবে ইউজার প্রোফাইলে আপডেট
   if (actionTaken === 'block' || actionTaken === 'suspend') {
     await update(ref(rtdb, `users/${targetUid}`), {
       accountStatus: actionTaken,
@@ -211,4 +208,21 @@ export const resolveUserReport = async (
     'RESOLVE_REPORT', 
     `Report ${reportId} marked as ${status} with action: ${actionTaken} on target ${targetUid}`
   );
+};
+
+// ------------------- AUDIT LOG SERVICES -------------------
+
+// সব অডিট লগ ফেচ করা (সর্বশেষ ১০০টি)
+export const fetchAuditLogs = async (limitCount: number = 100): Promise<AuditLog[]> => {
+  const auditQuery = query(ref(rtdb, 'audit_logs'), orderByChild('timestamp'), limitToLast(limitCount));
+  const snapshot = await get(auditQuery);
+  if (!snapshot.exists()) return [];
+
+  const logsData = snapshot.val();
+  const logsList: AuditLog[] = Object.keys(logsData).map((key) => ({
+    id: key,
+    ...logsData[key]
+  }));
+
+  return logsList.sort((a, b) => b.timestamp - a.timestamp);
 };
