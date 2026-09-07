@@ -1,6 +1,6 @@
 import { rtdb } from '../config/firebase.config';
 import { ref, get, query, orderByChild, endAt, remove, push, set, update } from 'firebase/database';
-import { AuditLog, AdminRole, SystemAnalytics, AdItem, AppSettings } from '../types/admin';
+import { AuditLog, AdminRole, SystemAnalytics, AdItem, AppSettings, UserReport } from '../types/admin';
 
 // Audit Log রেকর্ড তৈরি
 export const logAdminAction = async (adminUid: string, role: AdminRole, action: string, details: string) => {
@@ -89,7 +89,6 @@ export const fetchSystemAnalytics = async (): Promise<SystemAnalytics> => {
 
 // ------------------- AD MANAGER SERVICES -------------------
 
-// সব অ্যাড ফেচ করা
 export const fetchAllAds = async (): Promise<AdItem[]> => {
   const snapshot = await get(ref(rtdb, 'ads'));
   if (!snapshot.exists()) return [];
@@ -103,7 +102,6 @@ export const fetchAllAds = async (): Promise<AdItem[]> => {
   return adsList.sort((a, b) => (a.order || 0) - (b.order || 0));
 };
 
-// নতুন অ্যাড যোগ করা
 export const createAd = async (
   adminUid: string,
   role: AdminRole,
@@ -125,7 +123,6 @@ export const createAd = async (
   return newAd;
 };
 
-// অ্যাড স্ট্যাটাস (Active/Paused) আপডেট
 export const updateAdStatus = async (
   adminUid: string,
   role: AdminRole,
@@ -136,7 +133,6 @@ export const updateAdStatus = async (
   await logAdminAction(adminUid, role, 'UPDATE_AD_STATUS', `Updated ad ${adId} status to ${status}`);
 };
 
-// অ্যাড মুছে ফেলা
 export const deleteAd = async (adminUid: string, role: AdminRole, adId: string) => {
   await remove(ref(rtdb, `ads/${adId}`));
   await logAdminAction(adminUid, role, 'DELETE_AD', `Deleted ad ID: ${adId}`);
@@ -144,14 +140,12 @@ export const deleteAd = async (adminUid: string, role: AdminRole, adId: string) 
 
 // ------------------- APP SETTINGS SERVICES -------------------
 
-// বর্তমান AppSettings ফেচ করা
 export const fetchAppSettings = async (): Promise<AppSettings> => {
   const snapshot = await get(ref(rtdb, 'app_settings'));
   if (snapshot.exists()) {
     return snapshot.val() as AppSettings;
   }
   
-  // ডিফোল্ট সেটিংস
   return {
     textExpiryMinutes: 60,
     voiceDailyLimit: 10,
@@ -164,7 +158,6 @@ export const fetchAppSettings = async (): Promise<AppSettings> => {
   };
 };
 
-// AppSettings আপডেট করা
 export const updateAppSettings = async (
   adminUid: string,
   role: AdminRole,
@@ -173,4 +166,49 @@ export const updateAppSettings = async (
   await set(ref(rtdb, 'app_settings'), settings);
   await logAdminAction(adminUid, role, 'UPDATE_APP_SETTINGS', 'Updated global application settings');
 };
-  
+
+// ------------------- USER REPORTS SERVICES -------------------
+
+// সব রিপোর্ট ফেচ করা
+export const fetchUserReports = async (): Promise<UserReport[]> => {
+  const snapshot = await get(ref(rtdb, 'reports'));
+  if (!snapshot.exists()) return [];
+
+  const reportsData = snapshot.val();
+  const reportsList: UserReport[] = Object.keys(reportsData).map((key) => ({
+    id: key,
+    ...reportsData[key]
+  }));
+
+  return reportsList.sort((a, b) => b.createdAt - a.createdAt);
+};
+
+// রিপোর্ট রিভিউ ও মডারেশন অ্যাকশন নেওয়া
+export const resolveUserReport = async (
+  adminUid: string,
+  role: AdminRole,
+  reportId: string,
+  targetUid: string,
+  status: 'reviewed' | 'resolved' | 'dismissed',
+  actionTaken: 'none' | 'warn' | 'suspend' | 'block'
+) => {
+  await update(ref(rtdb, `reports/${reportId}`), {
+    status,
+    actionTaken
+  });
+
+  // যদি অ্যাকশন হিসেবে ব্লক বা সাসপেন্ড করা হয় তবে ইউজার প্রোফাইলে আপডেট
+  if (actionTaken === 'block' || actionTaken === 'suspend') {
+    await update(ref(rtdb, `users/${targetUid}`), {
+      accountStatus: actionTaken,
+      updatedAt: Date.now()
+    });
+  }
+
+  await logAdminAction(
+    adminUid, 
+    role, 
+    'RESOLVE_REPORT', 
+    `Report ${reportId} marked as ${status} with action: ${actionTaken} on target ${targetUid}`
+  );
+};
