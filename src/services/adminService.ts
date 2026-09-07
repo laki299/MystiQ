@@ -1,6 +1,6 @@
 import { rtdb } from '../config/firebase.config';
 import { ref, get, query, orderByChild, endAt, remove, push, set, update } from 'firebase/database';
-import { AuditLog, AdminRole, SystemAnalytics, AdItem } from '../types/admin';
+import { AuditLog, AdminRole, SystemAnalytics, AdItem, AppSettings } from '../types/admin';
 
 // Audit Log রেকর্ড তৈরি
 export const logAdminAction = async (adminUid: string, role: AdminRole, action: string, details: string) => {
@@ -100,7 +100,6 @@ export const fetchAllAds = async (): Promise<AdItem[]> => {
     ...adsData[key]
   }));
 
-  // অর্ডার অনুযায়ী সর্ট করা
   return adsList.sort((a, b) => (a.order || 0) - (b.order || 0));
 };
 
@@ -142,3 +141,36 @@ export const deleteAd = async (adminUid: string, role: AdminRole, adId: string) 
   await remove(ref(rtdb, `ads/${adId}`));
   await logAdminAction(adminUid, role, 'DELETE_AD', `Deleted ad ID: ${adId}`);
 };
+
+// ------------------- APP SETTINGS SERVICES -------------------
+
+// বর্তমান AppSettings ফেচ করা
+export const fetchAppSettings = async (): Promise<AppSettings> => {
+  const snapshot = await get(ref(rtdb, 'app_settings'));
+  if (snapshot.exists()) {
+    return snapshot.val() as AppSettings;
+  }
+  
+  // ডিফোল্ট সেটিংস
+  return {
+    textExpiryMinutes: 60,
+    voiceDailyLimit: 10,
+    maxVoiceDurationSec: 30,
+    presenceTimeoutSec: 120,
+    requestExpirySec: 300,
+    inactiveThresholdDays: 30,
+    rewardDurationHours: 24,
+    rewardedAdsEnabled: true
+  };
+};
+
+// AppSettings আপডেট করা
+export const updateAppSettings = async (
+  adminUid: string,
+  role: AdminRole,
+  settings: AppSettings
+) => {
+  await set(ref(rtdb, 'app_settings'), settings);
+  await logAdminAction(adminUid, role, 'UPDATE_APP_SETTINGS', 'Updated global application settings');
+};
+  
