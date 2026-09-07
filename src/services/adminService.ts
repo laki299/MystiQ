@@ -1,6 +1,6 @@
 import { rtdb } from '../config/firebase.config';
 import { ref, get, query, orderByChild, endAt, remove, push, set } from 'firebase/database';
-import { AuditLog, AdminRole } from '../types/admin';
+import { AuditLog, AdminRole, SystemAnalytics } from '../types/admin';
 
 // Audit Log রেকর্ড তৈরি
 export const logAdminAction = async (adminUid: string, role: AdminRole, action: string, details: string) => {
@@ -38,3 +38,51 @@ export const cleanupExpiredMessages = async (adminUid: string, role: AdminRole) 
   return 0;
 };
 
+// System Analytics ফেচ করা
+export const fetchSystemAnalytics = async (): Promise<SystemAnalytics> => {
+  const [usersSnap, presenceSnap, chatsSnap, directSnap, reportsSnap] = await Promise.all([
+    get(ref(rtdb, 'users')),
+    get(ref(rtdb, 'presence')),
+    get(ref(rtdb, 'chats')),
+    get(ref(rtdb, 'direct_chats')),
+    get(ref(rtdb, 'reports'))
+  ]);
+
+  const totalUsers = usersSnap.exists() ? Object.keys(usersSnap.val()).length : 0;
+  
+  let activeUsersNow = 0;
+  if (presenceSnap.exists()) {
+    const presenceData = presenceSnap.val();
+    Object.keys(presenceData).forEach((cat) => {
+      activeUsersNow += Object.keys(presenceData[cat] || {}).length;
+    });
+  }
+
+  const activePublicChats = chatsSnap.exists() ? Object.keys(chatsSnap.val()).length : 0;
+  const totalDirectConversations = directSnap.exists() ? Object.keys(directSnap.val()).length : 0;
+  
+  let totalReportsPending = 0;
+  if (reportsSnap.exists()) {
+    const reports = reportsSnap.val();
+    Object.keys(reports).forEach((id) => {
+      if (reports[id]?.status === 'pending') totalReportsPending++;
+    });
+  }
+
+  const rawDataString = JSON.stringify({
+    u: usersSnap.val() || {},
+    p: presenceSnap.val() || {},
+    c: chatsSnap.val() || {}
+  });
+  const estimatedRtdbSizeKb = parseFloat((new Blob([rawDataString]).size / 1024).toFixed(2));
+
+  return {
+    totalUsers,
+    activeUsersNow,
+    inactiveUsers: Math.max(0, totalUsers - activeUsersNow),
+    activePublicChats,
+    totalDirectConversations,
+    totalReportsPending,
+    estimatedRtdbSizeKb
+  };
+};
