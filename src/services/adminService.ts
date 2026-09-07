@@ -1,6 +1,6 @@
 import { rtdb } from '../config/firebase.config';
-import { ref, get, query, orderByChild, endAt, remove, push, set } from 'firebase/database';
-import { AuditLog, AdminRole, SystemAnalytics } from '../types/admin';
+import { ref, get, query, orderByChild, endAt, remove, push, set, update } from 'firebase/database';
+import { AuditLog, AdminRole, SystemAnalytics, AdItem } from '../types/admin';
 
 // Audit Log রেকর্ড তৈরি
 export const logAdminAction = async (adminUid: string, role: AdminRole, action: string, details: string) => {
@@ -85,4 +85,60 @@ export const fetchSystemAnalytics = async (): Promise<SystemAnalytics> => {
     totalReportsPending,
     estimatedRtdbSizeKb
   };
+};
+
+// ------------------- AD MANAGER SERVICES -------------------
+
+// সব অ্যাড ফেচ করা
+export const fetchAllAds = async (): Promise<AdItem[]> => {
+  const snapshot = await get(ref(rtdb, 'ads'));
+  if (!snapshot.exists()) return [];
+
+  const adsData = snapshot.val();
+  const adsList: AdItem[] = Object.keys(adsData).map((key) => ({
+    id: key,
+    ...adsData[key]
+  }));
+
+  // অর্ডার অনুযায়ী সর্ট করা
+  return adsList.sort((a, b) => (a.order || 0) - (b.order || 0));
+};
+
+// নতুন অ্যাড যোগ করা
+export const createAd = async (
+  adminUid: string,
+  role: AdminRole,
+  adData: Omit<AdItem, 'id' | 'clicks' | 'views'>
+) => {
+  const newAdRef = push(ref(rtdb, 'ads'));
+  const newAd: AdItem = {
+    id: newAdRef.key!,
+    title: adData.title,
+    link: adData.link,
+    status: adData.status || 'active',
+    order: adData.order || 0,
+    clicks: 0,
+    views: 0
+  };
+
+  await set(newAdRef, newAd);
+  await logAdminAction(adminUid, role, 'CREATE_AD', `Created new ad: ${adData.title}`);
+  return newAd;
+};
+
+// অ্যাড স্ট্যাটাস (Active/Paused) আপডেট
+export const updateAdStatus = async (
+  adminUid: string,
+  role: AdminRole,
+  adId: string,
+  status: 'active' | 'paused'
+) => {
+  await update(ref(rtdb, `ads/${adId}`), { status });
+  await logAdminAction(adminUid, role, 'UPDATE_AD_STATUS', `Updated ad ${adId} status to ${status}`);
+};
+
+// অ্যাড মুছে ফেলা
+export const deleteAd = async (adminUid: string, role: AdminRole, adId: string) => {
+  await remove(ref(rtdb, `ads/${adId}`));
+  await logAdminAction(adminUid, role, 'DELETE_AD', `Deleted ad ID: ${adId}`);
 };
