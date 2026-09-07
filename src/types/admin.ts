@@ -47,3 +47,12 @@ export interface AuditLog {
   timestamp: number;
 }
 
+export interface SystemAnalytics {
+  totalUsers: number;
+  activeUsersNow: number;
+  inactiveUsers: number;
+  activePublicChats: number;
+  totalDirectConversations: number;
+  totalReportsPending: number;
+  estimatedRtdbSizeKb: number;
+}
