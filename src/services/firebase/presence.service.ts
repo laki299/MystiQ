@@ -1,7 +1,7 @@
 import { ref, set, onDisconnect, onValue, remove } from 'firebase/database';
 import { rtdb } from '../../config/firebase.config';
 import { UserProfile } from '../../types/user.types';
-import { PresenceUser } from '../../types/room.types';
+import { PresenceUser } from '../../';
 import { APP_CONFIG } from '../../config/app.config';
 
 export const joinCategoryPresence = async (
