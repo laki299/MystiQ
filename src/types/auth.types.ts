@@ -14,4 +14,3 @@ export interface AuthState {
   firebaseUid: string | null;
   error: string | null;
 }
-
