@@ -16,6 +16,4 @@ export const BackButton: React.FC<BackButtonProps> = ({
     >
       <span>←</span>
       <span>{label}</span>
-    </button>
-  );
-};
+    </button
