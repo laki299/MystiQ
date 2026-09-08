@@ -3,7 +3,8 @@ import { rtdb } from '../../config/firebase.config';
 import { ChatMessage, Conversation } from '../../types/chat.types';
 import { APP_CONFIG } from '../../config/app.config';
 
-
+export const createConversation = async (
+  uid1: string,
   uid2: string,
   categoryId: string
 ): Promise<string> => {
