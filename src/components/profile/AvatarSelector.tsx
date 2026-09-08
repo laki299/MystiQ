@@ -3,7 +3,24 @@ import React, { useState } from 'react';
 interface AvatarSelectorProps {
   currentAvatar: string;
   onAvatarSelected: (url: string) => void;
-};
+}
+
+const AVATAR_STYLES = [
+  'bottts',
+  'fun-emoji',
+  'avataaars',
+  'lorelei',
+  'personas',
+  'shapes',
+  'icons',
+];
+
+export const AvatarSelector: React.FC<AvatarSelectorProps> = ({
+  currentAvatar,
+  onAvatarSelected,
+}) => {
+  const [selectedStyle, setSelectedStyle] = useState('bottts');
+  const [randomSeed, setRandomSeed] = useState(Date.now().toString());
 
   const presets = Array.from(
     { length: 8 },
