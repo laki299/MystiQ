@@ -19,7 +19,7 @@ const RANDOM_NAMES = [
 const getRandomAnonymousName = (): string => {
   const name = RANDOM_NAMES[Math.floor(Math.random() * RANDOM_NAMES.length)];
   const num = Math.floor(1000 + Math.random() * 9000);
-  return `\( {name} # \){num}`;
+  return `${name} #${num}`;
 };
 
 export const autoAuthenticateAndSaveProfile = async (): Promise<UserProfile> => {
@@ -57,3 +57,4 @@ export const autoAuthenticateAndSaveProfile = async (): Promise<UserProfile> => 
   await update(userRef, { lastActiveAt: now });
   return { ...existingProfile, lastActiveAt: now };
 };
+
