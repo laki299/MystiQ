@@ -11,7 +11,7 @@ export const QuickSweepBanner: React.FC<QuickSweepBannerProps> = ({
   onSweep,
   isDeleting,
 }) => {
-  if (count 
+  if (count < 10) return null;
 
   return (
     <div className="fixed bottom-24 left-4 right-4 z-50 max-w-md mx-auto">
