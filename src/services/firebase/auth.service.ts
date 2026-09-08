@@ -4,15 +4,22 @@ import { auth, rtdb } from '../../config/firebase.config';
 import { UserProfile } from '../../types/user.types';
 
 const RANDOM_NAMES = [
-  'Shadow Soul', 'Moon Walker', 'Silent Heart', 
-  'Mystic One', 'Dark Rose', 'Cosmic Nomad', 
-  'Ocean Breeze', 'Velvet Echo'
+  'Shadow Soul',
+  'Moon Walker',
+  'Silent Heart',
+  'Mystic One',
+  'Dark Rose',
+  'Cosmic Nomad',
+  'Ocean Breeze',
+  'Velvet Echo',
+  'Night Whisper',
+  'Crystal Drift',
 ];
 
 const getRandomAnonymousName = (): string => {
-  const randomIndex = Math.floor(Math.random() * RANDOM_NAMES.length);
-  const randomNum = Math.floor(1000 + Math.random() * 9000);
-  return `${RANDOM_NAMES[randomIndex]} #${randomNum}`;
+  const name = RANDOM_NAMES[Math.floor(Math.random() * RANDOM_NAMES.length)];
+  const num = Math.floor(1000 + Math.random() * 9000);
+  return `\( {name} # \){num}`;
 };
 
 export const autoAuthenticateAndSaveProfile = async (): Promise<UserProfile> => {
@@ -37,15 +44,16 @@ export const autoAuthenticateAndSaveProfile = async (): Promise<UserProfile> => 
       interests: [],
       bio: '',
       createdAt: now,
-      lastActiveAt: now
+      lastActiveAt: now,
+      lastProfileUpdate: now,
+      accountStatus: 'active',
     };
 
     await set(userRef, newProfile);
     return newProfile;
-  } else {
-    const existingProfile = snapshot.val() as UserProfile;
-    await update(userRef, { lastActiveAt: now });
-    return { ...existingProfile, lastActiveAt: now };
   }
-};
 
+  const existingProfile = snapshot.val() as UserProfile;
+  await update(userRef, { lastActiveAt: now });
+  return { ...existingProfile, lastActiveAt: now };
+};
