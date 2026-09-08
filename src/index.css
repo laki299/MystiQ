@@ -2,6 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
 body {
   margin: 0;
   padding: 0;
@@ -9,14 +15,19 @@ body {
   -webkit-tap-highlight-color: transparent;
   background-color: #020617;
   color: #f8fafc;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
-@keyframes bounceShort {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-6px); }
+/* Hide scrollbar on chip rows */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
-.animate-bounce-short {
-  animation: bounceShort 2s infinite ease-in-out;
+/* Smooth overscroll */
+* {
+  -webkit-overflow-scrolling: touch;
 }
-
