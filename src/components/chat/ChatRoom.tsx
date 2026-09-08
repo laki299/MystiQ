@@ -1,131 +1,151 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { UserProfile } from '../../types/user.types';
 import { ChatMessage } from '../../types/chat.types';
-import { sendChatMessage, subscribeToCategoryChat } from '../../services/firebase/chat.service';
+import { sendTextMessage, subscribeToMessages } from '../../services/firebase/chat.service';
+import { BackButton } from '../common/BackButton';
+import { APP_CONFIG } from '../../config/app.config';
 
 interface ChatRoomProps {
-  categoryId: string;
+  conversationId: string;
   categoryName: string;
+  partnerName: string;
+  partnerAvatar?: string;
   profile: UserProfile;
   onBack: () => void;
 }
 
-export const ChatRoom: React.FC<ChatRoomProps> = ({ categoryId, categoryName, profile, onBack }) => {
+export const ChatRoom: React.FC<ChatRoomProps> = ({
+  conversationId,
+  categoryName,
+  partnerName,
+  partnerAvatar,
+  profile,
+  onBack,
+}) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [isSending, setIsSending] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const unsubscribe = subscribeToCategoryChat(categoryId, (msgs) => {
-      setMessages(msgs);
-    });
-    return () => unsubscribe();
-  }, [categoryId]);
+    const unsub = subscribeToMessages(conversationId, setMessages);
+    return () => unsub();
+  }, [conversationId]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    endRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputText.trim() || isSending) return;
 
-    const textToSend = inputText;
+    const text = inputText;
     setInputText('');
     setIsSending(true);
-
     try {
-      await sendChatMessage(categoryId, profile, textToSend);
+      await sendTextMessage(conversationId, profile.uid, text);
     } catch (err) {
-      console.error('[Send Message Error]:', err);
-      setInputText(textToSend);
+      console.error('[Send Error]', err);
+      setInputText(text);
     } finally {
       setIsSending(false);
     }
   };
 
+  const expiryLabel = `\( {Math.floor(APP_CONFIG.limits.textExpirySeconds / 60)}: \){String(
+    APP_CONFIG.limits.textExpirySeconds % 60
+  ).padStart(2, '0')}`;
+
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-2xl flex flex-col h-[75vh] shadow-xl overflow-hidden">
-      {/* Chat Header */}
-      <div className="flex items-center justify-between px-4 py-3 bg-slate-950/60 border-b border-slate-800">
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={onBack}
-            className="text-xs text-slate-400 hover:text-white bg-slate-900 border border-slate-800 px-2.5 py-1 rounded-lg transition-colors"
-          >
-            ← Back
-          </button>
-          <h2 className="text-sm font-bold text-slate-200 truncate">{categoryName}</h2>
+      {/* Header */}
+      <div className="flex items-center justify-between px-3 py-3 bg-slate-950/70 border-b border-slate-800 gap-2">
+        <BackButton onClick={onBack} />
+        <div className="flex-1 min-w-0 text-center">
+          <p className="text-sm font-bold text-slate-100 truncate">{partnerName}</p>
+          <p className="text-[10px] text-slate-500">{categoryName}</p>
         </div>
-        <span className="text-[10px] text-purple-400 bg-purple-950/60 border border-purple-800/50 px-2 py-0.5 rounded-full">
-          Auto-Delete (2h)
+        <span className="text-[9px] text-purple-300 bg-purple-950/60 border border-purple-800/40 px-2 py-0.5 rounded-full flex-shrink-0">
+          {expiryLabel}m
         </span>
       </div>
 
-      {/* Message List Area */}
+      {/* Messages */}
       <div className="flex-1 overflow-y-auto p-3 space-y-3">
         {messages.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-slate-500 text-xs space-y-1">
-            <span>🌌</span>
-            <p>No messages yet. Say hello anonymously!</p>
+            <span className="text-2xl">🕯️</span>
+            <p>No messages yet. Say hello anonymously.</p>
+            <p className="text-[10px] text-slate-600">Messages vanish after {expiryLabel}</p>
           </div>
         ) : (
           messages.map((msg) => {
-            const isMe = msg.senderUid === profile.uid;
+            const isMe = msg.senderId === profile.uid;
             return (
               <div
                 key={msg.id}
-                className={`flex items-end space-x-2 ${isMe ? 'flex-row-reverse space-x-reverse' : 'flex-row'}`}
+                className={`flex items-end gap-2 ${isMe ? 'flex-row-reverse' : ''}`}
               >
-                <div className="w-8 h-8 rounded-full bg-slate-950 border border-slate-800 flex items-center justify-center overflow-hidden flex-shrink-0">
-                  {msg.senderAvatar ? (
-                    <img src={msg.senderAvatar} alt="Avatar" className="w-full h-full object-cover" />
+                <div className="w-7 h-7 rounded-full bg-slate-950 border border-slate-800 overflow-hidden flex items-center justify-center flex-shrink-0">
+                  {isMe ? (
+                    profile.avatar ? (
+                      <img src={profile.avatar} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-[10px]">👤</span>
+                    )
+                  ) : partnerAvatar ? (
+                    <img src={partnerAvatar} alt="" className="w-full h-full object-cover" />
                   ) : (
-                    <span className="text-xs">👤</span>
+                    <span className="text-[10px]">👤</span>
                   )}
                 </div>
 
-                <div className={`max-w-[75%] space-y-1 ${isMe ? 'items-end' : 'items-start'}`}>
-                  {!isMe && (
-                    <span className="text-[10px] font-semibold text-purple-400 ml-1">
-                      {msg.senderName}
-                    </span>
-                  )}
+                <div className={`max-w-[75%] ${isMe ? 'items-end' : 'items-start'}`}>
                   <div
-                    className={`p-3 rounded-2xl text-xs break-words ${
+                    className={`px-3 py-2 rounded-2xl text-xs break-words ${
                       isMe
-                        ? 'bg-purple-600 text-white rounded-br-none'
-                        : 'bg-slate-950 border border-slate-800 text-slate-200 rounded-bl-none'
+                        ? 'bg-purple-600 text-white rounded-br-md'
+                        : 'bg-slate-950 border border-slate-800 text-slate-200 rounded-bl-md'
                     }`}
                   >
                     {msg.text}
                   </div>
-                  <span className={`text-[9px] text-slate-500 px-1 block ${isMe ? 'text-right' : 'text-left'}`}>
-                    {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  <span
+                    className={`text-[9px] text-slate-500 mt-0.5 block ${
+                      isMe ? 'text-right' : 'text-left'
+                    }`}
+                  >
+                    {new Date(msg.createdAt).toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
                   </span>
                 </div>
               </div>
             );
           })
         )}
-        <div ref={messagesEndRef} />
+        <div ref={endRef} />
       </div>
 
-      {/* Message Input Box */}
-      <form onSubmit={handleSend} className="p-3 bg-slate-950/80 border-t border-slate-800 flex space-x-2">
+      {/* Input */}
+      <form
+        onSubmit={handleSend}
+        className="p-3 bg-slate-950/80 border-t border-slate-800 flex gap-2"
+      >
         <input
           type="text"
           value={inputText}
           onChange={(e) => setInputText(e.target.value)}
-          placeholder="Type an anonymous message..."
-          className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-purple-500"
+          placeholder="Anonymous message..."
           maxLength={500}
+          className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-slate-100 focus:outline-none focus:border-purple-500"
         />
         <button
           type="submit"
           disabled={isSending || !inputText.trim()}
-          className="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-xl text-xs font-bold disabled:opacity-50 transition-colors"
+          className="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2.5 rounded-xl text-xs font-bold disabled:opacity-50 transition-all"
         >
           Send
         </button>
@@ -133,4 +153,3 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({ categoryId, categoryName, pr
     </div>
   );
 };
-        
