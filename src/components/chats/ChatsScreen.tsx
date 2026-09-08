@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { UserProfile } from '../../types/user.types';
 import { Conversation } from '../../types/chat.types';
-import { ChatRequest } from '../../types/request.typ
+import { ChatRequest } from '../../types/request.types';
 import {
   subscribeToUserConversations,
   getOrCreateConversation,
