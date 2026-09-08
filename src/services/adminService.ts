@@ -1,9 +1,30 @@
 import { rtdb } from '../config/firebase.config';
-import { ref, get, query, orderByChild, limitToLast, endAt, remove, push, set, update } from 'firebase/database';
-import { AuditLog, AdminRole, SystemAnalytics, AdItem, AppSettings, UserReport } from '../types/admin';
+import {
+  ref,
+  get,
+  query,
+  orderByChild,
+  limitToLast,
+  remove,
+  push,
+  set,
+  update,
+} from 'firebase/database';
+import {
+  AuditLog,
+  AdminRole,
+  SystemAnalytics,
+  AdItem,
+  AppSettings,
+  UserReport,
+} from '../types/admin';
 
-// Audit Log রেকর্ড তৈরি
-export const logAdminAction = async (adminUid: string, role: AdminRole, action: string, details: string) => {
+export const logAdminAction = async (
+  adminUid: string,
+  role: AdminRole,
+  action: string,
+  details: string
+) => {
   const logRef = push(ref(rtdb, 'audit_logs'));
   const logData: AuditLog = {
     id: logRef.key!,
@@ -11,56 +32,72 @@ export const logAdminAction = async (adminUid: string, role: AdminRole, action: 
     adminRole: role,
     action,
     details,
-    timestamp: Date.now()
+    timestamp: Date.now(),
   };
   await set(logRef, logData);
 };
 
-// নিরাপদ Expired Data Cleanup Rule: expiresAt <= current server time
-export const cleanupExpiredMessages = async (adminUid: string, role: AdminRole) => {
-  const now = Date.now();
-  const messagesQuery = query(ref(rtdb, 'messages'), orderByChild('expiresAt'), endAt(now));
-  
-  const snapshot = await get(messagesQuery);
-  if (snapshot.exists()) {
-    let deletedCount = 0;
-    const promises: Promise<void>[] = [];
-    
-    snapshot.forEach((child) => {
-      promises.push(remove(ref(rtdb, `messages/${child.key}`)));
-      deletedCount++;
-    });
-
-    await Promise.all(promises);
-    await logAdminAction(adminUid, role, 'CLEANUP_EXPIRED_MESSAGES', `Deleted ${deletedCount} expired messages`);
-    return deletedCount;
-  }
-  return 0;
-};
-
-// System Analytics ফেচ করা
 export const fetchSystemAnalytics = async (): Promise<SystemAnalytics> => {
-  const [usersSnap, presenceSnap, chatsSnap, directSnap, reportsSnap] = await Promise.all([
-    get(ref(rtdb, 'users')),
-    get(ref(rtdb, 'presence')),
-    get(ref(rtdb, 'chats')),
-    get(ref(rtdb, 'direct_chats')),
-    get(ref(rtdb, 'reports'))
-  ]);
+  const [usersSnap, presenceSnap, convSnap, reqSnap, reportsSnap] =
+    await Promise.all([
+      get(ref(rtdb, 'users')),
+      get(ref(rtdb, 'presence')),
+      get(ref(rtdb, 'conversations')),
+      get(ref(rtdb, 'chatRequests')),
+      get(ref(rtdb, 'reports')),
+    ]);
 
-  const totalUsers = usersSnap.exists() ? Object.keys(usersSnap.val()).length : 0;
-  
+  const now = Date.now();
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
+  const todayStart = startOfDay.getTime();
+
+  let totalUsers = 0;
+  let todayNewUsers = 0;
+  let inactiveUsers = 0;
+
+  if (usersSnap.exists()) {
+    const users = usersSnap.val();
+    const uids = Object.keys(users);
+    totalUsers = uids.length;
+
+    uids.forEach((uid) => {
+      const u = users[uid];
+      if (u?.createdAt && u.createdAt >= todayStart) todayNewUsers++;
+      if (u?.lastActiveAt && now - u.lastActiveAt > 30 * 24 * 60 * 60 * 1000) {
+        inactiveUsers++;
+      }
+    });
+  }
+
   let activeUsersNow = 0;
   if (presenceSnap.exists()) {
     const presenceData = presenceSnap.val();
+    const unique = new Set<string>();
     Object.keys(presenceData).forEach((cat) => {
-      activeUsersNow += Object.keys(presenceData[cat] || {}).length;
+      const catUsers = presenceData[cat] || {};
+      Object.keys(catUsers).forEach((uid) => {
+        const p = catUsers[uid];
+        if (p?.expiresAt > now) unique.add(uid);
+      });
+    });
+    activeUsersNow = unique.size;
+  }
+
+  let totalDirectConversations = 0;
+  if (convSnap.exists()) {
+    totalDirectConversations = Object.keys(convSnap.val()).length;
+  }
+
+  let totalPendingRequests = 0;
+  if (reqSnap.exists()) {
+    const reqs = reqSnap.val();
+    Object.keys(reqs).forEach((id) => {
+      const r = reqs[id];
+      if (r?.status === 'pending' && r.expiresAt > now) totalPendingRequests++;
     });
   }
 
-  const activePublicChats = chatsSnap.exists() ? Object.keys(chatsSnap.val()).length : 0;
-  const totalDirectConversations = directSnap.exists() ? Object.keys(directSnap.val()).length : 0;
-  
   let totalReportsPending = 0;
   if (reportsSnap.exists()) {
     const reports = reportsSnap.val();
@@ -69,37 +106,34 @@ export const fetchSystemAnalytics = async (): Promise<SystemAnalytics> => {
     });
   }
 
-  const rawDataString = JSON.stringify({
+  const raw = JSON.stringify({
     u: usersSnap.val() || {},
     p: presenceSnap.val() || {},
-    c: chatsSnap.val() || {}
+    c: convSnap.val() || {},
   });
-  const estimatedRtdbSizeKb = parseFloat((new Blob([rawDataString]).size / 1024).toFixed(2));
+  const estimatedRtdbSizeKb = parseFloat((new Blob([raw]).size / 1024).toFixed(2));
 
   return {
     totalUsers,
     activeUsersNow,
-    inactiveUsers: Math.max(0, totalUsers - activeUsersNow),
-    activePublicChats,
+    inactiveUsers,
+    todayNewUsers,
+    activePublicChats: 0,
     totalDirectConversations,
     totalReportsPending,
-    estimatedRtdbSizeKb
+    totalPendingRequests,
+    estimatedRtdbSizeKb,
   };
 };
 
-// ------------------- AD MANAGER SERVICES -------------------
-
+// ---- Ads ----
 export const fetchAllAds = async (): Promise<AdItem[]> => {
   const snapshot = await get(ref(rtdb, 'ads'));
   if (!snapshot.exists()) return [];
-
   const adsData = snapshot.val();
-  const adsList: AdItem[] = Object.keys(adsData).map((key) => ({
-    id: key,
-    ...adsData[key]
-  }));
-
-  return adsList.sort((a, b) => (a.order || 0) - (b.order || 0));
+  return Object.keys(adsData)
+    .map((key) => ({ id: key, ...adsData[key] }))
+    .sort((a, b) => (a.order || 0) - (b.order || 0));
 };
 
 export const createAd = async (
@@ -115,11 +149,10 @@ export const createAd = async (
     status: adData.status || 'active',
     order: adData.order || 0,
     clicks: 0,
-    views: 0
+    views: 0,
   };
-
   await set(newAdRef, newAd);
-  await logAdminAction(adminUid, role, 'CREATE_AD', `Created new ad: ${adData.title}`);
+  await logAdminAction(adminUid, role, 'CREATE_AD', `Created ad: ${adData.title}`);
   return newAd;
 };
 
@@ -130,31 +163,27 @@ export const updateAdStatus = async (
   status: 'active' | 'paused'
 ) => {
   await update(ref(rtdb, `ads/${adId}`), { status });
-  await logAdminAction(adminUid, role, 'UPDATE_AD_STATUS', `Updated ad ${adId} status to ${status}`);
+  await logAdminAction(adminUid, role, 'UPDATE_AD_STATUS', `Ad ${adId} → ${status}`);
 };
 
 export const deleteAd = async (adminUid: string, role: AdminRole, adId: string) => {
   await remove(ref(rtdb, `ads/${adId}`));
-  await logAdminAction(adminUid, role, 'DELETE_AD', `Deleted ad ID: ${adId}`);
+  await logAdminAction(adminUid, role, 'DELETE_AD', `Deleted ad ${adId}`);
 };
 
-// ------------------- APP SETTINGS SERVICES -------------------
-
+// ---- Settings ----
 export const fetchAppSettings = async (): Promise<AppSettings> => {
   const snapshot = await get(ref(rtdb, 'app_settings'));
-  if (snapshot.exists()) {
-    return snapshot.val() as AppSettings;
-  }
-  
+  if (snapshot.exists()) return snapshot.val() as AppSettings;
   return {
-    textExpiryMinutes: 60,
-    voiceDailyLimit: 10,
-    maxVoiceDurationSec: 30,
-    presenceTimeoutSec: 120,
+    textExpiryMinutes: 2.5,
+    voiceDailyLimit: 25,
+    maxVoiceDurationSec: 60,
+    presenceTimeoutSec: 45,
     requestExpirySec: 300,
     inactiveThresholdDays: 30,
-    rewardDurationHours: 24,
-    rewardedAdsEnabled: true
+    rewardDurationHours: 8,
+    rewardedAdsEnabled: false,
   };
 };
 
@@ -164,22 +193,17 @@ export const updateAppSettings = async (
   settings: AppSettings
 ) => {
   await set(ref(rtdb, 'app_settings'), settings);
-  await logAdminAction(adminUid, role, 'UPDATE_APP_SETTINGS', 'Updated global application settings');
+  await logAdminAction(adminUid, role, 'UPDATE_APP_SETTINGS', 'Updated global settings');
 };
 
-// ------------------- USER REPORTS SERVICES -------------------
-
+// ---- Reports ----
 export const fetchUserReports = async (): Promise<UserReport[]> => {
   const snapshot = await get(ref(rtdb, 'reports'));
   if (!snapshot.exists()) return [];
-
   const reportsData = snapshot.val();
-  const reportsList: UserReport[] = Object.keys(reportsData).map((key) => ({
-    id: key,
-    ...reportsData[key]
-  }));
-
-  return reportsList.sort((a, b) => b.createdAt - a.createdAt);
+  return Object.keys(reportsData)
+    .map((key) => ({ id: key, ...reportsData[key] }))
+    .sort((a, b) => b.createdAt - a.createdAt);
 };
 
 export const resolveUserReport = async (
@@ -190,39 +214,71 @@ export const resolveUserReport = async (
   status: 'reviewed' | 'resolved' | 'dismissed',
   actionTaken: 'none' | 'warn' | 'suspend' | 'block'
 ) => {
-  await update(ref(rtdb, `reports/${reportId}`), {
-    status,
-    actionTaken
-  });
+  await update(ref(rtdb, `reports/${reportId}`), { status, actionTaken });
 
-  if (actionTaken === 'block' || actionTaken === 'suspend') {
+  if (actionTaken === 'block' || actionTaken === 'suspend' || actionTaken === 'warn') {
     await update(ref(rtdb, `users/${targetUid}`), {
-      accountStatus: actionTaken,
-      updatedAt: Date.now()
+      accountStatus: actionTaken === 'warn' ? 'warn' : actionTaken,
+      lastProfileUpdate: Date.now(),
     });
   }
 
   await logAdminAction(
-    adminUid, 
-    role, 
-    'RESOLVE_REPORT', 
-    `Report ${reportId} marked as ${status} with action: ${actionTaken} on target ${targetUid}`
+    adminUid,
+    role,
+    'RESOLVE_REPORT',
+    `Report ${reportId} → ${status}, action: ${actionTaken}, target: ${targetUid}`
   );
 };
 
-// ------------------- AUDIT LOG SERVICES -------------------
-
-// সব অডিট লগ ফেচ করা (সর্বশেষ ১০০টি)
+// ---- Audit ----
 export const fetchAuditLogs = async (limitCount: number = 100): Promise<AuditLog[]> => {
-  const auditQuery = query(ref(rtdb, 'audit_logs'), orderByChild('timestamp'), limitToLast(limitCount));
+  const auditQuery = query(
+    ref(rtdb, 'audit_logs'),
+    orderByChild('timestamp'),
+    limitToLast(limitCount)
+  );
   const snapshot = await get(auditQuery);
   if (!snapshot.exists()) return [];
-
   const logsData = snapshot.val();
-  const logsList: AuditLog[] = Object.keys(logsData).map((key) => ({
-    id: key,
-    ...logsData[key]
-  }));
+  return Object.keys(logsData)
+    .map((key) => ({ id: key, ...logsData[key] }))
+    .sort((a, b) => b.timestamp - a.timestamp);
+};
 
-  return logsList.sort((a, b) => b.timestamp - a.timestamp);
+// ---- Cleanup helpers for admin ----
+export const adminDeleteExpiredMessages = async (
+  adminUid: string,
+  role: AdminRole
+): Promise<number> => {
+  const now = Date.now();
+  let deleted = 0;
+  const convSnap = await get(ref(rtdb, 'conversations'));
+  if (!convSnap.exists()) return 0;
+
+  const updates: Record<string, null> = {};
+  const convs = convSnap.val();
+
+  for (const convId of Object.keys(convs)) {
+    const msgSnap = await get(ref(rtdb, `messages/${convId}`));
+    if (!msgSnap.exists()) continue;
+    const msgs = msgSnap.val();
+    for (const msgId of Object.keys(msgs)) {
+      if (msgs[msgId]?.expiresAt <= now) {
+        updates[`messages/\( {convId}/ \){msgId}`] = null;
+        deleted++;
+      }
+    }
+  }
+
+  if (deleted > 0) {
+    await update(ref(rtdb), updates);
+    await logAdminAction(
+      adminUid,
+      role,
+      'CLEANUP_EXPIRED_MESSAGES',
+      `Deleted ${deleted} expired messages`
+    );
+  }
+  return deleted;
 };
