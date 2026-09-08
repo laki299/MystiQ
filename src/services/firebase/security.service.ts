@@ -1,66 +1,62 @@
-import { ref, push, set, remove, onValue } from 'firebase/database';
+import { ref, push, set, remove, onValue, get } from 'firebase/database';
 import { rtdb } from '../../config/firebase.config';
 import { UserReport } from '../../types/security.types';
 
-// Report a user or specific message
 export const reportUserOrMessage = async (
-  reporterUid: string,
-  reportedUid: string,
+  reporterId: string,
+  targetId: string,
   reason: string,
   messageId?: string
 ): Promise<void> => {
   const reportsRef = ref(rtdb, 'reports');
-  const newReportRef = push(reportsRef);
+  const newRef = push(reportsRef);
 
-  const reportData: UserReport = {
-    id: newReportRef.key as string,
-    reporterUid,
-    reportedUid,
-    messageId,
+  const reportData = {
+    id: newRef.key as string,
+    reporterId,
+    targetId,
     reason,
-    createdAt: Date.now()
+    messageId: messageId || null,
+    createdAt: Date.now(),
+    status: 'pending',
   };
 
-  await set(newReportRef, reportData);
+  await set(newRef, reportData);
 };
 
-// Block a user
 export const blockUser = async (
-  reporterUid: string,
-  targetUid: string,
-  targetName: string
+  uid: string,
+  blockedUid: string
 ): Promise<void> => {
-  const blockRef = ref(rtdb, `blocks/${reporterUid}/${targetUid}`);
-  await set(blockRef, {
-    blockedUid: targetUid,
-    blockedName: targetName,
-    blockedAt: Date.now()
-  });
+  await set(ref(rtdb, `blocks/\( {uid}/ \){blockedUid}`), true);
 };
 
-// Unblock a user
 export const unblockUser = async (
-  reporterUid: string,
-  targetUid: string
+  uid: string,
+  blockedUid: string
 ): Promise<void> => {
-  const blockRef = ref(rtdb, `blocks/${reporterUid}/${targetUid}`);
-  await remove(blockRef);
+  await remove(ref(rtdb, `blocks/\( {uid}/ \){blockedUid}`));
 };
 
-// Subscribe to blocked users list
 export const subscribeToBlockedUsers = (
-  reporterUid: string,
+  uid: string,
   callback: (blockedUids: string[]) => void
 ) => {
-  const blocksRef = ref(rtdb, `blocks/${reporterUid}`);
+  const blocksRef = ref(rtdb, `blocks/${uid}`);
 
   return onValue(blocksRef, (snapshot) => {
-    if (snapshot.exists()) {
-      const data = snapshot.val();
-      callback(Object.keys(data));
-    } else {
+    if (!snapshot.exists()) {
       callback([]);
+      return;
     }
+    callback(Object.keys(snapshot.val()));
   });
 };
 
+export const isUserBlocked = async (
+  uid: string,
+  targetUid: string
+): Promise<boolean> => {
+  const snapshot = await get(ref(rtdb, `blocks/\( {uid}/ \){targetUid}`));
+  return snapshot.exists();
+};
