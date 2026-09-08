@@ -21,7 +21,6 @@ export const useAuth = () => {
         setIsLoading(false);
       }
     };
-
     initAuth();
   }, []);
 
