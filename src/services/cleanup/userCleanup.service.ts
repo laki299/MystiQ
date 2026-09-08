@@ -14,7 +14,7 @@ export const scanUserExpiredItems = async (
   const result: ExpiredItemsCount = {
     total: 0,
     messagePaths: [],
-  
+    requestPaths: [],
   };
 
   try {
