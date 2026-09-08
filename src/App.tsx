@@ -91,6 +91,7 @@ export const App: React.FC = () => {
             onOpenDiscover={() => setTab('discover')}
             onOpenChats={() => setTab('chats')}
             onOpenProfile={() => setTab('profile')}
+            requestCount={requestCount}
           />
         )}
 
@@ -116,3 +117,4 @@ export const App: React.FC = () => {
 };
 
 export default App;
+                                 
