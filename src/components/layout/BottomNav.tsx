@@ -10,7 +10,7 @@ interface BottomNavProps {
 
 const items: { id: TabId; label: string; icon: string }[] = [
   { id: 'home', label: 'Home', icon: '🏠' },
-  { id: 'discover', label: 'Discover', icon: '✨' },
+  { id: 'discover', label: 'Discover', icon: '🔍' },
   { id: 'chats', label: 'Chats', icon: '💬' },
   { id: 'profile', label: 'Profile', icon: '👤' },
 ];
@@ -21,19 +21,19 @@ export const BottomNav: React.FC<BottomNavProps> = ({
   chatBadge = 0,
 }) => {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 max-w-md mx-auto">
-      <div className="mx-3 mb-3 rounded-2xl border border-slate-800 bg-slate-950/95 backdrop-blur-md shadow-2xl shadow-purple-950/30">
-        <div className="grid grid-cols-4 gap-1 p-1.5">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 max-w-md mx-auto px-3 pb-3">
+      <div className="rounded-2xl border border-slate-800 bg-slate-950/95 backdrop-blur-md shadow-2xl shadow-black/40">
+        <div className="grid grid-cols-4 p-1.5">
           {items.map((item) => {
             const isActive = active === item.id;
             return (
               <button
                 key={item.id}
                 onClick={() => onChange(item.id)}
-                className={`relative flex flex-col items-center justify-center rounded-xl py-2 transition-all ${
+                className={`relative flex flex-col items-center justify-center rounded-xl py-2.5 transition-all ${
                   isActive
-                    ? 'bg-purple-600/20 text-purple-300'
-                    : 'text-slate-500 hover:text-slate-300'
+                    ? 'bg-gradient-to-b from-purple-600/30 to-purple-600/10 text-purple-300'
+                    : 'text-slate-500'
                 }`}
               >
                 <span className="text-lg leading-none">{item.icon}</span>
@@ -41,7 +41,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
                   {item.label}
                 </span>
                 {item.id === 'chats' && chatBadge > 0 && (
-                  <span className="absolute top-1 right-3 min-w-[16px] h-4 px-1 rounded-full bg-rose-500 text-[9px] font-bold text-white flex items-center justify-center">
+                  <span className="absolute top-1.5 right-3 min-w-[16px] h-4 px-1 rounded-full bg-rose-500 text-[9px] font-bold text-white flex items-center justify-center">
                     {chatBadge > 9 ? '9+' : chatBadge}
                   </span>
                 )}
@@ -53,4 +53,3 @@ export const BottomNav: React.FC<BottomNavProps> = ({
     </nav>
   );
 };
-
