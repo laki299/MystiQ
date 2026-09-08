@@ -15,7 +15,7 @@ const REPORT_REASONS = [
   'Inappropriate / Adult Content',
   'Spam or Scam',
   'Hate Speech',
-  'Other'
+  'Other',
 ];
 
 export const ReportModal: React.FC<ReportModalProps> = ({
@@ -24,7 +24,7 @@ export const ReportModal: React.FC<ReportModalProps> = ({
   reportedName,
   messageId,
   isOpen,
-  onClose
+  onClose,
 }) => {
   const [selectedReason, setSelectedReason] = useState(REPORT_REASONS[0]);
   const [customDetail, setCustomDetail] = useState('');
@@ -37,9 +37,10 @@ export const ReportModal: React.FC<ReportModalProps> = ({
     e.preventDefault();
     setIsSubmitting(true);
 
-    const finalReason = selectedReason === 'Other' && customDetail.trim() 
-      ? `Other: ${customDetail.trim()}` 
-      : selectedReason;
+    const finalReason =
+      selectedReason === 'Other' && customDetail.trim()
+        ? `Other: ${customDetail.trim()}`
+        : selectedReason;
 
     try {
       await reportUserOrMessage(reporterUid, reportedUid, finalReason, messageId);
@@ -58,7 +59,10 @@ export const ReportModal: React.FC<ReportModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-xs p-5 space-y-4 shadow-2xl relative">
-        <button onClick={onClose} className="absolute top-3 right-3 text-slate-400 hover:text-white text-lg">
+        <button
+          onClick={onClose}
+          className="absolute top-3 right-3 text-slate-400 hover:text-white text-lg"
+        >
           ✕
         </button>
 
@@ -66,7 +70,7 @@ export const ReportModal: React.FC<ReportModalProps> = ({
           <div className="py-6 text-center space-y-2">
             <span className="text-3xl">✅</span>
             <p className="text-xs text-slate-200 font-semibold">Report Submitted</p>
-            <p className="text-[10px] text-slate-400">Our moderators will review this shortly.</p>
+            <p className="text-[10px] text-slate-400">Moderators will review shortly.</p>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-3">
@@ -77,7 +81,10 @@ export const ReportModal: React.FC<ReportModalProps> = ({
             <div className="space-y-1.5">
               <label className="text-[11px] text-slate-400 block">Select Reason</label>
               {REPORT_REASONS.map((reason) => (
-                <label key={reason} className="flex items-center space-x-2 text-xs text-slate-300 cursor-pointer">
+                <label
+                  key={reason}
+                  className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer"
+                >
                   <input
                     type="radio"
                     name="reportReason"
@@ -103,7 +110,7 @@ export const ReportModal: React.FC<ReportModalProps> = ({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-2 rounded-xl text-xs transition-colors disabled:opacity-50"
+              className="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-2.5 rounded-xl text-xs transition-colors disabled:opacity-50"
             >
               {isSubmitting ? 'Submitting...' : 'Submit Report'}
             </button>
@@ -113,4 +120,3 @@ export const ReportModal: React.FC<ReportModalProps> = ({
     </div>
   );
 };
-
