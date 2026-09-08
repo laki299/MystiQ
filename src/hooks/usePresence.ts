@@ -23,4 +23,5 @@ export const usePresence = (
       clearInterval(interval);
       leaveCategoryPresence(activeCategoryId, profile.uid);
     };
-  }, [activeCategoryId
+  }, [activeCategoryId, profile]);
+};
