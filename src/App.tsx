@@ -1,62 +1,70 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from './hooks/useAuth';
 import { useExpiredCounter } from './hooks/useExpiredCounter';
-import { usePresence } from './hooks/usePresence';
 import { QuickSweepBanner } from './components/common/QuickSweepBanner';
-import { ProfileEditModal } from './components/profile/ProfileEditModal';
-import { UserProfileModal } from './components/profile/UserProfileModal';
-import { CategoryList, CATEGORIES } from './components/categories/CategoryList';
-import { ChatRoom } from './components/chat/ChatRoom';
-import { DMChatRoom } from './components/chat/DMChatRoom';
+import { BottomNav, TabId } from './components/layout/BottomNav';
+import { HomeScreen } from './components/home/HomeScreen';
+import { DiscoverScreen } from './components/discover/DiscoverScreen';
+import { ChatsScreen } from './components/chats/ChatsScreen';
+import { ProfileScreen } from './components/profile/ProfileScreen';
 import { AdminProtectedRoute } from './components/admin/AdminProtectedRoute';
-import { UserProfile } from './types/user.types';
+import { ref, get } from 'firebase/database';
+import { rtdb } from './config/firebase.config';
+import { subscribeToIncomingRequests } from './services/firebase/request.service';
 
 export const App: React.FC = () => {
-  const { profile: initialProfile, isLoading, error } = useAuth();
-  const [profile, setProfile] = useState<UserProfile | null>(initialProfile);
-  const [isEditOpen, setIsEditOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-
-  // DM & Profile View State
-  const [inspectUid, setInspectUid] = useState<string | null>(null);
-  const [activeDMUser, setActiveDMUser] = useState<UserProfile | null>(null);
-
-  // Admin View State
-  const [isAdminView, setIsAdminView] = useState<boolean>(false);
-
-  React.useEffect(() => {
-    if (initialProfile) setProfile(initialProfile);
-  }, [initialProfile]);
+  const { profile, setProfile, isLoading, error } = useAuth();
+  const [tab, setTab] = useState<TabId>('home');
+  const [isAdminView, setIsAdminView] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [requestCount, setRequestCount] = useState(0);
 
   const { count, executeSweep, isDeleting } = useExpiredCounter(profile?.uid || null);
 
-  usePresence(selectedCategory, profile);
+  // Check admin role
+  useEffect(() => {
+    if (!profile?.uid) return;
+    get(ref(rtdb, `admins/${profile.uid}`))
+      .then((snap) => setIsAdmin(snap.exists()))
+      .catch(() => setIsAdmin(false));
+  }, [profile?.uid]);
+
+  // Incoming request badge
+  useEffect(() => {
+    if (!profile?.uid) return;
+    const unsub = subscribeToIncomingRequests(profile.uid, (list) => {
+      setRequestCount(list.length);
+    });
+    return () => unsub();
+  }, [profile?.uid]);
 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4">
         <div className="text-center space-y-3">
-          <div className="w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <div className="w-10 h-10 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto" />
           <p className="text-sm text-slate-400">Connecting securely to MystiQ...</p>
         </div>
       </div>
     );
   }
 
-  if (error) {
+  if (error || !profile) {
     return (
       <div className="min-h-screen bg-slate-950 text-red-400 flex items-center justify-center p-4 text-center">
-        <p>Something went wrong: {error}</p>
+        <div className="space-y-2">
+          <p className="text-sm font-semibold">Something went wrong</p>
+          <p className="text-xs text-slate-500">{error || 'Profile unavailable'}</p>
+        </div>
       </div>
     );
   }
 
-  // যদি অ্যাডমিন মোড অন থাকে তবে সরাসরি অ্যাডমিন প্রটেক্টেড ভিউ রেন্ডার হবে
-  if (isAdminView && profile?.uid) {
+  if (isAdminView && isAdmin) {
     return (
       <div className="min-h-screen bg-slate-950">
         <div className="p-4 max-w-7xl mx-auto flex justify-between items-center bg-slate-900/80 border-b border-slate-800">
-          <span className="text-sm font-bold text-indigo-400">MystiQ Admin Mode</span>
+          <span className="text-sm font-bold text-indigo-400">MystiQ Admin</span>
           <button
             onClick={() => setIsAdminView(false)}
             className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-lg border border-slate-700 transition"
@@ -69,95 +77,51 @@ export const App: React.FC = () => {
     );
   }
 
-  const currentCategoryObj = CATEGORIES.find(c => c.id === selectedCategory);
-
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 p-4 max-w-md mx-auto relative pb-24">
-      {/* Header Profile Card */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3 shadow-xl mb-4">
-        <div className="flex items-center justify-between border-b border-slate-800/80 pb-2.5">
+    <div className="min-h-screen bg-slate-950 text-slate-100">
+      <div className="max-w-md mx-auto px-4 pt-4 relative min-h-screen">
+        {/* Top brand bar */}
+        <div className="flex items-center justify-between mb-4">
           <h1 className="text-lg font-extrabold text-purple-400 tracking-wide">MYSTIQ</h1>
-          
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={() => setIsAdminView(true)}
-              className="bg-indigo-950 text-indigo-300 border border-indigo-700 text-[10px] px-2.5 py-1 rounded-full font-bold hover:bg-indigo-900 transition flex items-center gap-1"
-              title="Open Admin Dashboard"
-            >
-              ⚡ Admin
-            </button>
-            <span className="bg-emerald-950 text-emerald-400 border border-emerald-800 text-[10px] px-2 py-0.5 rounded-full font-semibold">
-              Realtime
-            </span>
-          </div>
+          <span className="bg-emerald-950 text-emerald-400 border border-emerald-800 text-[10px] px-2 py-0.5 rounded-full font-semibold">
+            Live
+          </span>
         </div>
 
-        <div className="flex items-center space-x-3">
-          <div className="w-12 h-12 rounded-full bg-purple-950/80 border border-purple-700/60 flex items-center justify-center overflow-hidden flex-shrink-0">
-            {profile?.avatar ? (
-              <img src={profile.avatar} alt="Avatar" className="w-full h-full object-cover" />
-            ) : (
-              <span className="text-xl">👤</span>
-            )}
-          </div>
+        {tab === 'home' && (
+          <HomeScreen
+            profile={profile}
+            onOpenDiscover={() => setTab('discover')}
+            onOpenChats={() => setTab('chats')}
+            onOpenProfile={() => setTab('profile')}
+          />
+        )}
 
-          <div className="flex-1 min-w-0">
-            <h2 className="text-sm font-bold text-slate-100 truncate">{profile?.anonymousName}</h2>
-            <p className="text-[11px] text-slate-400 truncate">
-              {profile?.profession || 'Anonymous Member'} {profile?.city ? `• ${profile.city}` : ''}
-            </p>
-          </div>
+        {tab === 'discover' && <DiscoverScreen profile={profile} />}
 
-          <button
-            onClick={() => setIsEditOpen(true)}
-            className="text-xs bg-purple-950 border border-purple-800 text-purple-300 px-3 py-1.5 rounded-xl hover:bg-purple-900 font-medium"
-          >
-            Edit
-          </button>
-        </div>
+        {tab === 'chats' && <ChatsScreen profile={profile} />}
+
+        {tab === 'profile' && (
+          <ProfileScreen
+            profile={profile}
+            onProfileUpdated={setProfile}
+            isAdmin={isAdmin}
+            onOpenAdmin={() => setIsAdminView(true)}
+          />
+        )}
+
+        <QuickSweepBanner
+          count={count}
+          onSweep={executeSweep}
+          isDeleting={isDeleting}
+        />
+
+        <BottomNav
+          active={tab}
+          onChange={setTab}
+          chatBadge={requestCount}
+        />
       </div>
-
-      {/* Navigation Router */}
-      {activeDMUser && profile ? (
-        <DMChatRoom
-          currentUser={profile}
-          targetUser={activeDMUser}
-          onBack={() => setActiveDMUser(null)}
-        />
-      ) : selectedCategory && profile && currentCategoryObj ? (
-        <ChatRoom
-          categoryId={selectedCategory}
-          categoryName={currentCategoryObj.name}
-          profile={profile}
-          onBack={() => setSelectedCategory(null)}
-        />
-      ) : (
-        <CategoryList onSelectCategory={(catId) => setSelectedCategory(catId)} />
-      )}
-
-      {/* Sweep Banner */}
-      <QuickSweepBanner 
-        count={count} 
-        onSweep={executeSweep} 
-        isDeleting={isDeleting} 
-      />
-
-      {/* Modals */}
-      {profile && (
-        <ProfileEditModal
-          profile={profile}
-          isOpen={isEditOpen}
-          onClose={() => setIsEditOpen(false)}
-          onSaved={(updated) => setProfile(updated)}
-        />
-      )}
-
-      <UserProfileModal
-        targetUid={inspectUid}
-        isOpen={Boolean(inspectUid)}
-        onClose={() => setInspectUid(null)}
-        onStartDM={(targetUser) => setActiveDMUser(targetUser)}
-      />
     </div>
   );
 };
