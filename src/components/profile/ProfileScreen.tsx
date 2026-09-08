@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { UserProfile } from '../../types/user.types';
 import { ProfileEditModal } from './ProfileEditModal';
 import { BackButton } from '../common/BackButton';
-importnter';
+import { useExpiredCounter } from '../../hooks/useExpiredCounter';
 
 interface ProfileScreenProps {
   profile: UserProfile;
