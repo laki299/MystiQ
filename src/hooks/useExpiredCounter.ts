@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   scanUserExpiredItems,
   purgeUserExpiredData,
-  ExpiredItemsCount,
+  ExpiredItemsCount
 } from '../services/cleanup/userCleanup.service';
 
 export const useExpiredCounter = (uid: string | null) => {
