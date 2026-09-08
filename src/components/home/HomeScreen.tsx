@@ -96,7 +96,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
       <div>
         <h3 className="text-sm font-bold text-white mb-3">Quick Actions</h3>
         <div className="grid grid-cols-4 gap-2.5">
-          <button onClick={onOpenDiscover} class} className="flex flex-col items-center gap-1.5">
+          <button onClick={onOpenDiscover} className="flex flex-col items-center gap-1.5">
             <div className="w-14 h-14 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-xl">
               🔍
             </div>
