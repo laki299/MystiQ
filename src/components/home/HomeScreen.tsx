@@ -1,6 +1,6 @@
 import React from 'react';
 import { UserProfile } from '../../types/user.types';
-import { APP_CONFIG } from '../../config/app.config'
+import { APP_CONFIG } from '../../config/app.config';
 
 interface HomeScreenProps {
   profile: UserProfile;
