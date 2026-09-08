@@ -7,117 +7,137 @@ interface HomeScreenProps {
   onOpenDiscover: () => void;
   onOpenProfile: () => void;
   onOpenChats: () => void;
+  requestCount?: number;
 }
+
+const CAT_STYLES: Record<string, string> = {
+  general: 'from-blue-600 to-indigo-600',
+  friendship: 'from-violet-600 to-purple-600',
+  romantic: 'from-fuchsia-600 to-pink-600',
+  casual: 'from-amber-500 to-orange-600',
+};
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({
   profile,
   onOpenDiscover,
   onOpenProfile,
   onOpenChats,
+  requestCount = 0,
 }) => {
   return (
-    <div className="space-y-4 pb-28">
-      {/* Hero */}
-      <div className="relative overflow-hidden rounded-3xl border border-slate-800 bg-gradient-to-br from-slate-900 via-purple-950/40 to-slate-900 p-5 shadow-xl">
-        <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full bg-purple-600/20 blur-2xl" />
-        <div className="absolute -bottom-8 -left-8 w-24 h-24 rounded-full bg-indigo-600/20 blur-2xl" />
-
-        <div className="relative">
-          <p className="text-[11px] uppercase tracking-[0.2em] text-purple-300/80 font-semibold">
-            Welcome to
-          </p>
-          <h1 className="mt-1 text-2xl font-black text-white tracking-wide">
-            {APP_CONFIG.appName}
-          </h1>
-          <p className="mt-2 text-xs text-slate-400 leading-relaxed">
-            Anonymous discovery. Temporary chats. Your real identity stays hidden.
-          </p>
-
-          <div className="mt-4 flex items-center gap-3">
-            <div className="w-11 h-11 rounded-full bg-purple-950 border border-purple-700/50 overflow-hidden flex items-center justify-center">
-              {profile.avatar ? (
-                <img src={profile.avatar} alt="" className="w-full h-full object-cover" />
-              ) : (
-                <span className="text-lg">👤</span>
-              )}
+    <div className="space-y-5 pb-28">
+      {/* Header card */}
+      <div className="rounded-3xl border border-white/5 bg-gradient-to-br from-slate-900 via-slate-900 to-purple-950/50 p-4 shadow-xl">
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 p-[2px]">
+              <div className="w-full h-full rounded-full bg-slate-950 overflow-hidden flex items-center justify-center">
+                {profile.avatar ? (
+                  <img src={profile.avatar} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-xl">👤</span>
+                )}
+              </div>
             </div>
-            <div className="min-w-0">
-              <p className="text-sm font-bold text-slate-100 truncate">
-                {profile.anonymousName}
-              </p>
-              <p className="text-[11px] text-slate-400 truncate">
-                {profile.profession || 'Anonymous Member'}
-                {profile.city ? ` · ${profile.city}` : ''}
-              </p>
-            </div>
+            <span className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-emerald-400 border-2 border-slate-950" />
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <p className="text-[11px] text-slate-400">Welcome back,</p>
+            <h2 className="text-base font-bold text-white truncate">{profile.anonymousName}</h2>
+            <p className="text-[11px] text-emerald-400 font-medium">● Online</p>
+          </div>
+
+          <div className="rounded-2xl bg-emerald-500/10 border border-emerald-500/30 px-3 py-2 text-center">
+            <p className="text-[9px] text-emerald-300 font-semibold flex items-center gap-1 justify-center">
+              ♛ Access Active
+            </p>
+            <p className="text-xs font-bold text-emerald-400 mt-0.5">Open</p>
           </div>
         </div>
       </div>
 
-      {/* Quick actions */}
-      <div className="grid grid-cols-2 gap-3">
-        <button
-          onClick={onOpenDiscover}
-          className="rounded-2xl border border-purple-500/30 bg-purple-600/15 hover:bg-purple-600/25 p-4 text-left transition-all active:scale-[0.98]"
-        >
-          <div className="text-2xl mb-2">✨</div>
-          <p className="text-sm font-bold text-purple-200">Discover</p>
-          <p className="text-[11px] text-slate-400 mt-0.5">Find people by category</p>
-        </button>
-
-        <button
-          onClick={onOpenChats}
-          className="rounded-2xl border border-slate-800 bg-slate-900 hover:border-slate-700 p-4 text-left transition-all active:scale-[0.98]"
-        >
-          <div className="text-2xl mb-2">💬</div>
-          <p className="text-sm font-bold text-slate-100">Chats</p>
-          <p className="text-[11px] text-slate-400 mt-0.5">Your active conversations</p>
-        </button>
-      </div>
-
-      {/* Categories preview */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
-            Categories
-          </h2>
-          <button
-            onClick={onOpenDiscover}
-            className="text-[11px] text-purple-400 font-semibold"
-          >
-            Open all →
+      {/* Active categories */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-bold text-white">Your Active Categories</h3>
+          <button onClick={onOpenDiscover} className="text-[11px] text-purple-400 font-semibold">
+            Manage
           </button>
         </div>
-
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-4 gap-2.5">
           {APP_CONFIG.categories.map((cat) => (
             <button
               key={cat.id}
               onClick={onOpenDiscover}
-              className="rounded-2xl border border-slate-800 bg-slate-900/80 p-3 text-left hover:border-purple-500/30 transition-all"
+              className="flex flex-col items-center gap-1.5 active:scale-95 transition"
             >
-              <span className="text-xl">{cat.icon}</span>
-              <p className="mt-1.5 text-xs font-bold text-slate-100">{cat.name}</p>
-              <p className="text-[10px] text-slate-500 line-clamp-1">{cat.description}</p>
+              <div
+                className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${
+                  CAT_STYLES[cat.id] || 'from-slate-600 to-slate-700'
+                } flex items-center justify-center text-2xl shadow-lg shadow-purple-900/20`}
+              >
+                {cat.icon}
+              </div>
+              <span className="text-[10px] font-semibold text-slate-200">{cat.name}</span>
+              <span className="text-[9px] text-emerald-400">● Online</span>
             </button>
           ))}
         </div>
       </div>
 
-      {/* Privacy note */}
-      <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-3.5">
-        <p className="text-[11px] text-slate-400 leading-relaxed">
-          <span className="text-purple-300 font-semibold">Privacy:</span> Messages auto-expire in{' '}
-          {Math.floor(APP_CONFIG.limits.textExpirySeconds / 60)}:
-          {String(APP_CONFIG.limits.textExpirySeconds % 60).padStart(2, '0')} minutes.
-          No permanent chat history.
-        </p>
-        <button
-          onClick={onOpenProfile}
-          className="mt-2 text-[11px] font-semibold text-purple-400"
-        >
-          Edit profile →
-        </button>
+      {/* Reward banner */}
+      <button
+        onClick={onOpenDiscover}
+        className="w-full rounded-2xl bg-gradient-to-r from-purple-600 via-violet-600 to-indigo-600 p-4 flex items-center gap-3 shadow-lg shadow-purple-900/40 active:scale-[0.99] transition"
+      >
+        <div className="w-11 h-11 rounded-xl bg-white/15 flex items-center justify-center text-2xl">
+          🎁
+        </div>
+        <div className="flex-1 text-left">
+          <p className="text-sm font-bold text-white">Get 8 Hours Access</p>
+          <p className="text-[11px] text-purple-100/80">Watch rewarded ads to continue using MystiQ.</p>
+        </div>
+        <span className="text-white/70 text-lg">›</span>
+      </button>
+
+      {/* Quick actions */}
+      <div>
+        <h3 className="text-sm font-bold text-white mb-3">Quick Actions</h3>
+        <div className="grid grid-cols-4 gap-2.5">
+          <button onClick={onOpenDiscover} className="flex flex-col items-center gap-1.5">
+            <div className="w-14 h-14 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-xl">
+              🔍
+            </div>
+            <span className="text-[10px] font-semibold text-slate-300">Discover</span>
+          </button>
+
+          <button onClick={onOpenChats} className="flex flex-col items-center gap-1.5 relative">
+            <div className="w-14 h-14 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-xl">
+              💬
+            </div>
+            {requestCount > 0 && (
+              <span className="absolute top-0 right-2 min-w-[16px] h-4 px-1 rounded-full bg-rose-500 text-[9px] font-bold text-white flex items-center justify-center">
+                {requestCount}
+              </span>
+            )}
+            <span className="text-[10px] font-semibold text-slate-300">Requests</span>
+          </button>
+
+          <button onClick={onOpenProfile} className="flex flex-col items-center gap-1.5">
+            <div className="w-14 h-14 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-xl">
+              👤
+            </div>
+            <span className="text-[10px] font-semibold text-slate-300">My Profile</span>
+          </button>
+
+          <button onClick={onOpenProfile} className="flex flex-col items-center gap-1.5">
+            <div className="w-14 h-14 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-xl">
+              🧹
+            </div>
+            <span className="text-[10px] font-semibold text-slate-300">Clean Data</span>
+          </button>
+        </div>
       </div>
     </div>
   );
