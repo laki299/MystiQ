@@ -1,15 +1,15 @@
 export interface UserReport {
   id: string;
-  reporterUid: string;
-  reportedUid: string;
+  reporterId: string;
+  targetId: string;
   messageId?: string;
   reason: string;
   createdAt: number;
+  status?: 'pending' | 'reviewed' | 'resolved' | 'dismissed';
+  actionTaken?: 'none' | 'warn' | 'suspend' | 'block';
 }
 
 export interface BlockedUser {
   blockedUid: string;
-  blockedName: string;
   blockedAt: number;
 }
-
