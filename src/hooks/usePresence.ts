@@ -1,18 +1,23 @@
 import { useEffect } from 'react';
 import { UserProfile } from '../types/user.types';
-import { joinCategoryPresence, leaveCategoryPresence } from '../services/firebase/presence.service';
+import {
+  joinCategoryPresence,
+  leaveCategoryPresence,
+} from '../services/firebase/presence.service';
+import { APP_CONFIG } from '../config/app.config';
 
-export const usePresence = (activeCategoryId: string | null, profile: UserProfile | null) => {
+export const usePresence = (
+  activeCategoryId: string | null,
+  profile: UserProfile | null
+) => {
   useEffect(() => {
     if (!activeCategoryId || !profile) return;
 
-    // Send initial join presence
     joinCategoryPresence(activeCategoryId, profile);
 
-    // Keep pulse active every 15 seconds
     const interval = setInterval(() => {
       joinCategoryPresence(activeCategoryId, profile);
-    }, 15000);
+    }, APP_CONFIG.limits.presenceHeartbeatSeconds * 1000);
 
     return () => {
       clearInterval(interval);
@@ -20,4 +25,3 @@ export const usePresence = (activeCategoryId: string | null, profile: UserProfil
     };
   }, [activeCategoryId, profile]);
 };
-
