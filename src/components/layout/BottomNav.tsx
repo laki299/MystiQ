@@ -25,7 +25,11 @@ export const BottomNav: React.FC<BottomNavProps> = ({
       <div className="mx-3 mb-3 rounded-2xl border border-slate-800 bg-slate-950/95 backdrop-blur-md shadow-2xl shadow-purple-950/30">
         <div className="grid grid-cols-4 gap-1 p-1.5">
           {items.map((item) => {
-            const isActive = active ===
+            const isActive = active === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => onChange(item.id)}
                 className={`relative flex flex-col items-center justify-center rounded-xl py-2 transition-all ${
                   isActive
                     ? 'bg-purple-600/20 text-purple-300'
@@ -49,3 +53,4 @@ export const BottomNav: React.FC<BottomNavProps> = ({
     </nav>
   );
 };
+
