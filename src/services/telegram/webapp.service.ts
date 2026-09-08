@@ -11,6 +11,8 @@ declare global {
         ready: () => void;
         expand: () => void;
         close: () => void;
+        themeParams?: Record<string, string>;
+        colorScheme?: 'light' | 'dark';
       };
     };
   }
@@ -25,19 +27,27 @@ export const getTelegramWebApp = () => {
 
 export const getTelegramUser = (): TelegramUser | null => {
   const webApp = getTelegramWebApp();
-  if (webApp && webApp.initDataUnsafe?.user) {
+  if (webApp?.initDataUnsafe?.user) {
     return webApp.initDataUnsafe.user;
   }
-  
+
+  // Local browser testing only
   if (import.meta.env.DEV) {
     return {
       id: 999999999,
       first_name: 'DevUser',
       username: 'dev_tester',
-      language_code: 'en'
+      language_code: 'en',
     };
   }
-  
+
   return null;
 };
 
+export const initTelegramWebApp = () => {
+  const webApp = getTelegramWebApp();
+  if (!webApp) return null;
+  webApp.ready();
+  webApp.expand();
+  return webApp;
+};
