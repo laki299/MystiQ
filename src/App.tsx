@@ -21,7 +21,6 @@ export const App: React.FC = () => {
 
   const { count, executeSweep, isDeleting } = useExpiredCounter(profile?.uid || null);
 
-  // Check admin role
   useEffect(() => {
     if (!profile?.uid) return;
     get(ref(rtdb, `admins/${profile.uid}`))
@@ -29,7 +28,6 @@ export const App: React.FC = () => {
       .catch(() => setIsAdmin(false));
   }, [profile?.uid]);
 
-  // Incoming request badge
   useEffect(() => {
     if (!profile?.uid) return;
     const unsub = subscribeToIncomingRequests(profile.uid, (list) => {
@@ -80,7 +78,6 @@ export const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <div className="max-w-md mx-auto px-4 pt-4 relative min-h-screen">
-        {/* Top brand bar */}
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-lg font-extrabold text-purple-400 tracking-wide">MYSTIQ</h1>
           <span className="bg-emerald-950 text-emerald-400 border border-emerald-800 text-[10px] px-2 py-0.5 rounded-full font-semibold">
@@ -110,17 +107,9 @@ export const App: React.FC = () => {
           />
         )}
 
-        <QuickSweepBanner
-          count={count}
-          onSweep={executeSweep}
-          isDeleting={isDeleting}
-        />
+        <QuickSweepBanner count={count} onSweep={executeSweep} isDeleting={isDeleting} />
 
-        <BottomNav
-          active={tab}
-          onChange={setTab}
-          chatBadge={requestCount}
-        />
+        <BottomNav active={tab} onChange={setTab} chatBadge={requestCount} />
       </div>
     </div>
   );
