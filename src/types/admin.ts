@@ -30,8 +30,10 @@ export interface AdItem {
 
 export interface UserReport {
   id: string;
-  reporterUid: string;
-  targetUid: string;
+  reporterId?: string;
+  reporterUid?: string;
+  targetId?: string;
+  targetUid?: string;
   reason: string;
   createdAt: number;
   status: 'pending' | 'reviewed' | 'resolved' | 'dismissed';
@@ -51,8 +53,10 @@ export interface SystemAnalytics {
   totalUsers: number;
   activeUsersNow: number;
   inactiveUsers: number;
+  todayNewUsers: number;
   activePublicChats: number;
   totalDirectConversations: number;
   totalReportsPending: number;
+  totalPendingRequests: number;
   estimatedRtdbSizeKb: number;
 }
