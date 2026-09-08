@@ -7,7 +7,8 @@ interface ReportModalProps {
   reportedName: string;
   messageId?: string;
   isOpen: boolean;
-  on
+  onClose: () => void;
+}
 
 const REPORT_REASONS = [
   'Harassment or Bullying',
