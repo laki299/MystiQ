@@ -9,7 +9,8 @@ import { BackButton } from '../common/BackButton';
 
 interface DiscoverScreenProps {
   profile: UserProfile;
-  onBac
+  onBack?: () => void;
+}
 
 export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ profile, onBack }) => {
   const [categoryId, setCategoryId] = useState(APP_CONFIG.categories[0].id);
