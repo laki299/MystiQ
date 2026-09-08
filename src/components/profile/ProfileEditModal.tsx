@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { UserProfile } from '../../types/user.types';
-import { updateUserProfile } from '../../services/firebase/profile.service';
+import { updateUserProvices/firebase/profile.service';
 import { AvatarSelector } from './AvatarSelector';
 
 interface ProfileEditModalProps {
