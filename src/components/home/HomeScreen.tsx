@@ -26,7 +26,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 }) => {
   return (
     <div className="space-y-5 pb-28">
-      {/* Header card */}
       <div className="rounded-3xl border border-white/5 bg-gradient-to-br from-slate-900 via-slate-900 to-purple-950/50 p-4 shadow-xl">
         <div className="flex items-center gap-3">
           <div className="relative">
@@ -45,19 +44,16 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           <div className="flex-1 min-w-0">
             <p className="text-[11px] text-slate-400">Welcome back,</p>
             <h2 className="text-base font-bold text-white truncate">{profile.anonymousName}</h2>
-            <p className="text-[11px] text-emerald-400 font-medium">● Online</p>
+            <p className="text-[11px] text-emerald-400 font-medium">Online</p>
           </div>
 
           <div className="rounded-2xl bg-emerald-500/10 border border-emerald-500/30 px-3 py-2 text-center">
-            <p className="text-[9px] text-emerald-300 font-semibold flex items-center gap-1 justify-center">
-              ♛ Access Active
-            </p>
+            <p className="text-[9px] text-emerald-300 font-semibold">Access Active</p>
             <p className="text-xs font-bold text-emerald-400 mt-0.5">Open</p>
           </div>
         </div>
       </div>
 
-      {/* Active categories */}
       <div>
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-bold text-white">Your Active Categories</h3>
@@ -80,17 +76,13 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                 {cat.icon}
               </div>
               <span className="text-[10px] font-semibold text-slate-200">{cat.name}</span>
-              <span className="text-[9px] text-emerald-400">● Online</span>
+              <span className="text-[9px] text-emerald-400">Online</span>
             </button>
           ))}
         </div>
       </div>
 
-      {/* Reward banner */}
-      <button
-        onClick={onOpenDiscover}
-        className="w-full rounded-2xl bg-gradient-to-r from-purple-600 via-violet-600 to-indigo-600 p-4 flex items-center gap-3 shadow-lg shadow-purple-900/40 active:scale-[0.99] transition"
-      >
+      <button className="w-full rounded-2xl bg-gradient-to-r from-purple-600 via-violet-600 to-indigo-600 p-4 flex items-center gap-3 shadow-lg shadow-purple-900/40 active:scale-[0.99] transition">
         <div className="w-11 h-11 rounded-xl bg-white/15 flex items-center justify-center text-2xl">
           🎁
         </div>
@@ -101,15 +93,14 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         <span className="text-white/70 text-lg">›</span>
       </button>
 
-      {/* Quick actions */}
       <div>
         <h3 className="text-sm font-bold text-white mb-3">Quick Actions</h3>
         <div className="grid grid-cols-4 gap-2.5">
-          <button onClick={onOpenDiscover} className="flex flex-col items-center gap-1.5">
+          <button onClick={onOpenDiscover} class} className="flex flex-col items-center gap-1.5">
             <div className="w-14 h-14 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-xl">
               🔍
             </div>
-            <span className="text-[10px] font-semibold text-slate-300">Discover</span>
+            <span className="text-[10px] font-semibold text-slate-300 text-center">Discover</span>
           </button>
 
           <button onClick={onOpenChats} className="flex flex-col items-center gap-1.5 relative">
@@ -117,25 +108,25 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               💬
             </div>
             {requestCount > 0 && (
-              <span className="absolute top-0 right-2 min-w-[16px] h-4 px-1 rounded-full bg-rose-500 text-[9px] font-bold text-white flex items-center justify-center">
+              <span className="absolute top-0 right-1 min-w-[16px] h-4 px-1 rounded-full bg-rose-500 text-[9px] font-bold text-white flex items-center justify-center">
                 {requestCount}
               </span>
             )}
-            <span className="text-[10px] font-semibold text-slate-300">Requests</span>
+            <span className="text-[10px] font-semibold text-slate-300 text-center">Requests</span>
           </button>
 
           <button onClick={onOpenProfile} className="flex flex-col items-center gap-1.5">
             <div className="w-14 h-14 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-xl">
               👤
             </div>
-            <span className="text-[10px] font-semibold text-slate-300">My Profile</span>
+            <span className="text-[10px] font-semibold text-slate-300 text-center">My Profile</span>
           </button>
 
           <button onClick={onOpenProfile} className="flex flex-col items-center gap-1.5">
             <div className="w-14 h-14 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-xl">
               🧹
             </div>
-            <span className="text-[10px] font-semibold text-slate-300">Clean Data</span>
+            <span className="text-[10px] font-semibold text-slate-300 text-center">Clean Data</span>
           </button>
         </div>
       </div>
