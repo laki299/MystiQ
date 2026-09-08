@@ -3,7 +3,7 @@ import { ref, get } from 'firebase/database';
 import { rtdb } from '../../config/firebase.config';
 import { UserProfile } from '../../types/user.types';
 import { blockUser } from '../../services/firebase/security.service';
-import { ReportModal } from '../common/ReportModa
+import { ReportModal } from '../common/ReportModal';
 
 interface UserProfileModalProps {
   currentUid: string;
