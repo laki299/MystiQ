@@ -1,12 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
-import { scanUserExpiredItems, purgeUserExpiredData, ExpiredItemsCount } from '../services/cleanup/userCleanup.service';
+import {
+  scanUserExpiredItems,
+  purgeUserExpiredData,
+  ExpiredItemsCount,
+} from '../services/cleanup/userCleanup.service';
 
 export const useExpiredCounter = (uid: string | null) => {
   const [expiredData, setExpiredData] = useState<ExpiredItemsCount>({
     total: 0,
     messagePaths: [],
-    voiceStoragePaths: [],
-    requestPaths: []
+    requestPaths: [],
   });
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -35,7 +38,6 @@ export const useExpiredCounter = (uid: string | null) => {
   return {
     count: expiredData.total,
     executeSweep,
-    isDeleting
+    isDeleting,
   };
 };
-
