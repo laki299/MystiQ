@@ -9,7 +9,4 @@ export interface UserReport {
   actionTaken?: 'none' | 'warn' | 'suspend' | 'block';
 }
 
-export interface BlockedUser {
-  blockedUid: string;
-  blockedAt: number;
-}
+ex
