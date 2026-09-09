@@ -20,13 +20,11 @@ export const AvatarSelector: React.FC<AvatarSelectorProps> = ({
   onAvatarSelected,
 }) => {
   const [selectedStyle, setSelectedStyle] = useState('bottts');
-  const [randomSeed, setRandomSeed] = useState(Date.now().toString());
+  const [randomSeed, setRandomSeed] = useState(() => Date.now().toString());
 
-  const presets = Array.from(
-    { length: 8 },
-    (_, i) =>
-      `https://api.dicebear.com/7.x/\( {selectedStyle}/svg?seed=preset_ \){randomSeed}_${i}`
-  );
+  const presets = Array.from({ length: 8 }, (_, i) => {
+    return `https://api.dicebear.com/7.x/\( {selectedStyle}/svg?seed=preset_ \){randomSeed}_${i}`;
+  });
 
   return (
     <div className="space-y-3 bg-slate-950/50 p-3 rounded-2xl border border-slate-800">
@@ -65,7 +63,7 @@ export const AvatarSelector: React.FC<AvatarSelectorProps> = ({
           const isSelected = currentAvatar === url;
           return (
             <button
-              key={idx}
+              key={`\( {selectedStyle}- \){randomSeed}-${idx}`}
               type="button"
               onClick={() => onAvatarSelected(url)}
               className={`w-14 h-14 rounded-xl bg-slate-900 p-1 border-2 transition-all flex items-center justify-center overflow-hidden ${
@@ -74,7 +72,12 @@ export const AvatarSelector: React.FC<AvatarSelectorProps> = ({
                   : 'border-slate-800 hover:border-slate-700 opacity-80 hover:opacity-100'
               }`}
             >
-              <img src={url} alt="Avatar" className="w-full h-full object-contain" />
+              <img
+                src={url}
+                alt="Avatar"
+                className="w-full h-full object-contain"
+                loading="lazy"
+              />
             </button>
           );
         })}
