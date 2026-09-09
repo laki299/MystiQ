@@ -1,5 +1,10 @@
-import { useState, useEffect } from 'react';
-import { autoAuthenticateAndSaveProfile } from '../services/firebase/auth.service';
+import { useState, useEffect, useCallback } from 'react';
+import {
+  restoreSession,
+  loginWithUsername,
+  registerWithUsername,
+  logoutUser,
+} from '../services/firebase/auth.service';
 import { UserProfile } from '../types/user.types';
 
 export const useAuth = () => {
@@ -9,23 +14,42 @@ export const useAuth = () => {
 
   useEffect(() => {
     let cancelled = false;
-
-    const initAuth = async () => {
+    (async () => {
       try {
-        const userProfile = await autoAuthenticateAndSaveProfile();
-        if (!cancelled) setProfile(userProfile);
+        const existing = await restoreSession();
+        if (!cancelled) setProfile(existing);
       } catch (err: any) {
-        console.error('[Auth Error]:', err);
-        if (!cancelled) setError(err?.message || 'Authentication failed');
+        console.error(err);
+        if (!cancelled) setError(err?.message || 'Session error');
       } finally {
         if (!cancelled) setIsLoading(false);
       }
-    };
-
-    initAuth();
+    })();
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  const login = useCallback(async (username: string, password: string) => {
+    setError(null);
+    const p = await loginWithUsername(username, password);
+    setProfile(p);
+    return p;
+  }, []);
+
+  const register = useCallback(
+    async (username: string, password: string, displayName?: string) => {
+      setError(null);
+      const p = await registerWithUsername(username, password, displayName);
+      setProfile(p);
+      return p;
+    },
+    []
+  );
+
+  const logout = useCallback(async () => {
+    await logoutUser();
+    setProfile(null);
   }, []);
 
   return {
@@ -33,5 +57,10 @@ export const useAuth = () => {
     setProfile,
     isLoading,
     error,
+    setError,
+    login,
+    register,
+    logout,
+    isLoggedIn: !!profile,
   };
 };
