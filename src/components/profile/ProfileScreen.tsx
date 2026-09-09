@@ -10,6 +10,7 @@ interface ProfileScreenProps {
   onBack?: () => void;
   isAdmin?: boolean;
   onOpenAdmin?: () => void;
+  onLogout?: () => void;
 }
 
 export const ProfileScreen: React.FC<ProfileScreenProps> = ({
@@ -18,6 +19,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   onBack,
   isAdmin,
   onOpenAdmin,
+  onLogout,
 }) => {
   const [editOpen, setEditOpen] = useState(false);
   const { count, executeSweep, isDeleting } = useExpiredCounter(profile.uid);
@@ -30,7 +32,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
         <div className="w-16" />
       </div>
 
-      {/* Profile card */}
       <div className="relative overflow-hidden rounded-3xl border border-slate-800 bg-gradient-to-br from-slate-900 via-purple-950/30 to-slate-900 p-5">
         <div className="absolute -top-8 -right-8 w-28 h-28 rounded-full bg-purple-600/15 blur-2xl" />
 
@@ -45,6 +46,9 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 
           <div>
             <h3 className="text-lg font-black text-white">{profile.anonymousName}</h3>
+            {profile.username && (
+              <p className="text-[11px] text-purple-300 mt-0.5">@{profile.username}</p>
+            )}
             <p className="text-xs text-slate-400 mt-0.5">
               {profile.profession || 'Anonymous Member'}
               {profile.city ? ` · ${profile.city}` : ''}
@@ -95,7 +99,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
         </div>
       </div>
 
-      {/* Clean my data */}
       <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4 space-y-3">
         <div className="flex items-center gap-2">
           <span className="text-lg">🧹</span>
@@ -120,7 +123,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
         </div>
       </div>
 
-      {/* Admin entry — only if admin */}
       {isAdmin && onOpenAdmin && (
         <button
           onClick={onOpenAdmin}
@@ -129,6 +131,18 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
           <p className="text-sm font-bold text-indigo-300">⚡ Admin Panel</p>
           <p className="text-[11px] text-slate-400 mt-0.5">
             Analytics, reports, ads, settings
+          </p>
+        </button>
+      )}
+
+      {onLogout && (
+        <button
+          onClick={onLogout}
+          className="w-full rounded-2xl border border-rose-500/30 bg-rose-950/30 hover:bg-rose-950/50 p-4 text-left transition-all"
+        >
+          <p className="text-sm font-bold text-rose-300">Log out</p>
+          <p className="text-[11px] text-slate-400 mt-0.5">
+            Sign out on this device
           </p>
         </button>
       )}
