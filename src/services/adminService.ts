@@ -126,7 +126,6 @@ export const fetchSystemAnalytics = async (): Promise<SystemAnalytics> => {
   };
 };
 
-// ---- Ads ----
 export const fetchAllAds = async (): Promise<AdItem[]> => {
   const snapshot = await get(ref(rtdb, 'ads'));
   if (!snapshot.exists()) return [];
@@ -171,11 +170,9 @@ export const deleteAd = async (adminUid: string, role: AdminRole, adId: string) 
   await logAdminAction(adminUid, role, 'DELETE_AD', `Deleted ad ${adId}`);
 };
 
-// ---- Settings ----
 export const fetchAppSettings = async (): Promise<AppSettings> => {
   const snapshot = await get(ref(rtdb, 'app_settings'));
-  if (snapshot.exists()) return snapshot.val() as AppSettings;
-  return {
+  const defaults: AppSettings = {
     textExpiryMinutes: 2.5,
     voiceDailyLimit: 25,
     maxVoiceDurationSec: 60,
@@ -184,7 +181,11 @@ export const fetchAppSettings = async (): Promise<AppSettings> => {
     inactiveThresholdDays: 30,
     rewardDurationHours: 8,
     rewardedAdsEnabled: false,
+    appDownloadUrl: 'https://mysti-q-flame.vercel.app',
+    shareMessage: 'MystiQ — Anonymous chat. Download / open here:',
   };
+  if (!snapshot.exists()) return defaults;
+  return { ...defaults, ...snapshot.val() };
 };
 
 export const updateAppSettings = async (
@@ -196,7 +197,6 @@ export const updateAppSettings = async (
   await logAdminAction(adminUid, role, 'UPDATE_APP_SETTINGS', 'Updated global settings');
 };
 
-// ---- Reports ----
 export const fetchUserReports = async (): Promise<UserReport[]> => {
   const snapshot = await get(ref(rtdb, 'reports'));
   if (!snapshot.exists()) return [];
@@ -231,7 +231,6 @@ export const resolveUserReport = async (
   );
 };
 
-// ---- Audit ----
 export const fetchAuditLogs = async (limitCount: number = 100): Promise<AuditLog[]> => {
   const auditQuery = query(
     ref(rtdb, 'audit_logs'),
@@ -246,7 +245,6 @@ export const fetchAuditLogs = async (limitCount: number = 100): Promise<AuditLog
     .sort((a, b) => b.timestamp - a.timestamp);
 };
 
-// ---- Cleanup helpers for admin ----
 export const adminDeleteExpiredMessages = async (
   adminUid: string,
   role: AdminRole
