@@ -12,13 +12,18 @@ import { ref, get, set, update, remove } from 'firebase/database';
 import { auth, rtdb } from '../../config/firebase.config';
 import { UserProfile } from '../../types/user.types';
 
-const AUTH_DOMAIN = 'mystiq.app';
-
 const normalizeUsername = (username: string) =>
-  username.trim().toLowerCase().replace(/\s+/g, '_');
+  username
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '_')
+    .replace(/[^a-z0-9_]/g, '');
 
-const toAuthEmail = (username: string) =>
-  `\( {normalizeUsername(username)}@ \){AUTH_DOMAIN}`;
+/** Hidden synthetic email — user never sees this */
+const toAuthEmail = (username: string) => {
+  const key = normalizeUsername(username);
+  return `${key}@mystiq-b1a8c.firebaseapp.com`;
+};
 
 const validateUsername = (username: string): string | null => {
   const u = username.trim();
