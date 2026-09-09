@@ -6,8 +6,7 @@
     "users": {
       "$uid": {
         ".read": "auth != null",
-        ".write": "auth != null && auth.uid === $uid",
-        ".validate": "newData.hasChildren(['uid', 'anonymousName', 'createdAt', 'lastActiveAt'])"
+        ".write": "auth != null && (auth.uid === $uid || root.child('admins').hasChild(auth.uid))"
       }
     },
 
@@ -22,40 +21,39 @@
       "$categoryId": {
         ".read": "auth != null",
         "$uid": {
-          ".write": "auth != null && auth.uid === $uid",
-          ".validate": "newData.hasChildren(['uid', 'anonymousName', 'lastHeartbeat', 'expiresAt'])"
+          ".write": "auth != null && auth.uid === $uid"
         }
       }
     },
 
     "chatRequests": {
       "$requestId": {
-        ".read": "auth != null && (data.child('fromUid').val() === auth.uid || data.child('toUid').val() === auth.uid)",
-        ".write": "auth != null && ((!data.exists() && newData.child('fromUid').val() === auth.uid) || (data.exists() && (data.child('fromUid').val() === auth.uid || data.child('toUid').val() === auth.uid)))"
+        ".read": "auth != null && (data.child('fromUid').val() === auth.uid || data.child('toUid').val() === auth.uid || root.child('admins').hasChild(auth.uid))",
+        ".write": "auth != null && ((!data.exists() && newData.child('fromUid').val() === auth.uid) || (data.exists() && (data.child('fromUid').val() === auth.uid || data.child('toUid').val() === auth.uid)) || root.child('admins').hasChild(auth.uid))"
       }
     },
 
     "conversations": {
       "$conversationId": {
-        ".read": "auth != null && data.child('participants').child(auth.uid).val() === true",
-        ".write": "auth != null && (!data.exists() || data.child('participants').child(auth.uid).val() === true)"
+        ".read": "auth != null && (data.child('participants').child(auth.uid).val() === true || root.child('admins').hasChild(auth.uid))",
+        ".write": "auth != null && (!data.exists() || data.child('participants').child(auth.uid).val() === true || root.child('admins').hasChild(auth.uid))"
       }
     },
 
     "messages": {
       "$conversationId": {
-        ".read": "auth != null && root.child('conversations').child($conversationId).child('participants').child(auth.uid).val() === true",
+        ".read": "auth != null && (root.child('conversations').child($conversationId).child('participants').child(auth.uid).val() === true || root.child('admins').hasChild(auth.uid))",
         "$messageId": {
-          ".write": "auth != null && root.child('conversations').child($conversationId).child('participants').child(auth.uid).val() === true && newData.child('senderId').val() === auth.uid"
+          ".write": "auth != null && ((root.child('conversations').child($conversationId).child('participants').child(auth.uid).val() === true && newData.child('senderId').val() === auth.uid) || root.child('admins').hasChild(auth.uid))"
         }
       }
     },
 
     "voiceMessages": {
       "$conversationId": {
-        ".read": "auth != null && root.child('conversations').child($conversationId).child('participants').child(auth.uid).val() === true",
+        ".read": "auth != null && (root.child('conversations').child($conversationId).child('participants').child(auth.uid).val() === true || root.child('admins').hasChild(auth.uid))",
         "$messageId": {
-          ".write": "auth != null && root.child('conversations').child($conversationId).child('participants').child(auth.uid).val() === true && newData.child('senderId').val() === auth.uid"
+          ".write": "auth != null && ((root.child('conversations').child($conversationId).child('participants').child(auth.uid).val() === true && newData.child('senderId').val() === auth.uid) || root.child('admins').hasChild(auth.uid))"
         }
       }
     },
@@ -63,61 +61,42 @@
     "blocks": {
       "$uid": {
         ".read": "auth != null && auth.uid === $uid",
-        "$blockedUid": {
-          ".write": "auth != null && auth.uid === $uid"
-        }
+        ".write": "auth != null && auth.uid === $uid"
       }
     },
 
     "reports": {
-      ".read": "auth != null && root.child('admins').child(auth.uid).exists()",
+      ".read": "auth != null && root.child('admins').hasChild(auth.uid)",
       "$reportId": {
-        ".write": "auth != null && ((!data.exists() && newData.child('reporterId').val() === auth.uid) || root.child('admins').child(auth.uid).exists())"
+        ".write": "auth != null && ((!data.exists() && (newData.child('reporterId').val() === auth.uid || newData.child('reporterUid').val() === auth.uid)) || root.child('admins').hasChild(auth.uid))"
       }
-    },
-
-    "userAccess": {
-      "$uid": {
-        ".read": "auth != null && auth.uid === $uid",
-        ".write": "auth != null && (auth.uid === $uid || root.child('admins').child(auth.uid).exists())"
-      }
-    },
-
-    "rewardAds": {
-      ".read": "auth != null",
-      ".write": "auth != null && root.child('admins').child(auth.uid).exists()"
     },
 
     "admins": {
+      ".read": "auth != null",
       "$uid": {
-        ".read": "auth != null && auth.uid === $uid",
-        ".write": false
+        ".write": "auth != null && root.child('admins').child(auth.uid).child('role').val() === 'super_admin'"
       }
-    },
-
-    "settings": {
-      ".read": "auth != null",
-      ".write": "auth != null && root.child('admins').child(auth.uid).exists()"
-    },
-
-    "stats": {
-      ".read": "auth != null && root.child('admins').child(auth.uid).exists()",
-      ".write": "auth != null && root.child('admins').child(auth.uid).exists()"
-    },
-
-    "audit_logs": {
-      ".read": "auth != null && root.child('admins').child(auth.uid).exists()",
-      ".write": "auth != null && root.child('admins').child(auth.uid).exists()"
-    },
-
-    "ads": {
-      ".read": "auth != null",
-      ".write": "auth != null && root.child('admins').child(auth.uid).exists()"
     },
 
     "app_settings": {
       ".read": "auth != null",
-      ".write": "auth != null && root.child('admins').child(auth.uid).exists()"
+      ".write": "auth != null && root.child('admins').child(auth.uid).child('role').val() === 'super_admin'"
+    },
+
+    "ads": {
+      ".read": "auth != null",
+      ".write": "auth != null && (root.child('admins').child(auth.uid).child('role').val() === 'super_admin' || root.child('admins').child(auth.uid).child('role').val() === 'ad_manager')"
+    },
+
+    "ads_config": {
+      ".read": "auth != null",
+      ".write": "auth != null && (root.child('admins').child(auth.uid).child('role').val() === 'super_admin' || root.child('admins').child(auth.uid).child('role').val() === 'ad_manager')"
+    },
+
+    "audit_logs": {
+      ".read": "auth != null && root.child('admins').hasChild(auth.uid)",
+      ".write": "auth != null && root.child('admins').hasChild(auth.uid)"
     }
   }
 }
