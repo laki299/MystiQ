@@ -11,6 +11,13 @@
       }
     },
 
+    "usernames": {
+      "$name": {
+        ".read": true,
+        ".write": "auth != null && ((!data.exists() && newData.val() === auth.uid) || (data.exists() && data.val() === auth.uid))"
+      }
+    },
+
     "presence": {
       "$categoryId": {
         ".read": "auth != null",
@@ -24,7 +31,7 @@
     "chatRequests": {
       "$requestId": {
         ".read": "auth != null && (data.child('fromUid').val() === auth.uid || data.child('toUid').val() === auth.uid)",
-        ".write": "auth != null && (!data.exists() && newData.child('fromUid').val() === auth.uid || data.exists() && (data.child('fromUid').val() === auth.uid || data.child('toUid').val() === auth.uid))"
+        ".write": "auth != null && ((!data.exists() && newData.child('fromUid').val() === auth.uid) || (data.exists() && (data.child('fromUid').val() === auth.uid || data.child('toUid').val() === auth.uid)))"
       }
     },
 
@@ -65,7 +72,7 @@
     "reports": {
       ".read": "auth != null && root.child('admins').child(auth.uid).exists()",
       "$reportId": {
-        ".write": "auth != null && (!data.exists() && newData.child('reporterId').val() === auth.uid || root.child('admins').child(auth.uid).exists())"
+        ".write": "auth != null && ((!data.exists() && newData.child('reporterId').val() === auth.uid) || root.child('admins').child(auth.uid).exists())"
       }
     },
 
