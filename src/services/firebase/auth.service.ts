@@ -1,47 +1,88 @@
 import {
-  signInAnonymously,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
   onAuthStateChanged,
   setPersistence,
   browserLocalPersistence,
+  updateEmail,
   User,
 } from 'firebase/auth';
-import { ref, get, set, update } from 'firebase/database';
+import { ref, get, set, update, remove } from 'firebase/database';
 import { auth, rtdb } from '../../config/firebase.config';
 import { UserProfile } from '../../types/user.types';
 
-const RANDOM_NAMES = [
-  'Shadow Soul',
-  'Moon Walker',
-  'Silent Heart',
-  'Mystic One',
-  'Dark Rose',
-  'Cosmic Nomad',
-  'Ocean Breeze',
-  'Velvet Echo',
-  'Night Whisper',
-  'Crystal Drift',
-];
+const AUTH_DOMAIN = 'mystiq.app';
 
-const getRandomAnonymousName = (): string => {
-  const name = RANDOM_NAMES[Math.floor(Math.random() * RANDOM_NAMES.length)];
-  const num = Math.floor(1000 + Math.random() * 9000);
-  return `\( {name} # \){num}`;
+const normalizeUsername = (username: string) =>
+  username.trim().toLowerCase().replace(/\s+/g, '_');
+
+const toAuthEmail = (username: string) =>
+  `\( {normalizeUsername(username)}@ \){AUTH_DOMAIN}`;
+
+const validateUsername = (username: string): string | null => {
+  const u = username.trim();
+  if (u.length < 3) return 'Username must be at least 3 characters';
+  if (u.length > 20) return 'Username max 20 characters';
+  if (!/^[a-zA-Z0-9_]+$/.test(u)) return 'Only letters, numbers, underscore';
+  return null;
 };
 
-const loadOrCreateProfile = async (uid: string): Promise<UserProfile> => {
-  const userRef = ref(rtdb, `users/${uid}`);
-  const snapshot = await get(userRef);
+const validatePassword = (password: string): string | null => {
+  if (password.length < 6) return 'Password must be at least 6 characters';
+  return null;
+};
+
+const loadProfile = async (uid: string): Promise<UserProfile | null> => {
+  const snap = await get(ref(rtdb, `users/${uid}`));
+  if (!snap.exists()) return null;
+  const profile = snap.val() as UserProfile;
+  await update(ref(rtdb, `users/${uid}`), { lastActiveAt: Date.now() });
+  return { ...profile, lastActiveAt: Date.now() };
+};
+
+export const restoreSession = async (): Promise<UserProfile | null> => {
+  await setPersistence(auth, browserLocalPersistence);
+
+  const user = await new Promise<User | null>((resolve) => {
+    const unsub = onAuthStateChanged(auth, (u) => {
+      unsub();
+      resolve(u);
+    });
+  });
+
+  if (!user) return null;
+  return loadProfile(user.uid);
+};
+
+export const registerWithUsername = async (
+  username: string,
+  password: string,
+  displayName?: string
+): Promise<UserProfile> => {
+  const userErr = validateUsername(username);
+  if (userErr) throw new Error(userErr);
+  const passErr = validatePassword(password);
+  if (passErr) throw new Error(passErr);
+
+  const key = normalizeUsername(username);
+  const nameSnap = await get(ref(rtdb, `usernames/${key}`));
+  if (nameSnap.exists()) throw new Error('Username already taken');
+
+  await setPersistence(auth, browserLocalPersistence);
+
+  const cred = await createUserWithEmailAndPassword(
+    auth,
+    toAuthEmail(username),
+    password
+  );
+  const uid = cred.user.uid;
   const now = Date.now();
 
-  if (snapshot.exists()) {
-    const existing = snapshot.val() as UserProfile;
-    await update(userRef, { lastActiveAt: now });
-    return { ...existing, lastActiveAt: now };
-  }
-
-  const newProfile: UserProfile = {
+  const profile: UserProfile = {
     uid,
-    anonymousName: getRandomAnonymousName(),
+    username: username.trim(),
+    anonymousName: displayName?.trim() || username.trim(),
     avatar: '',
     age: 0,
     gender: 'unspecified',
@@ -57,36 +98,70 @@ const loadOrCreateProfile = async (uid: string): Promise<UserProfile> => {
     accountStatus: 'active',
   };
 
-  await set(userRef, newProfile);
-  return newProfile;
+  await set(ref(rtdb, `users/${uid}`), profile);
+  await set(ref(rtdb, `usernames/${key}`), uid);
+
+  return profile;
 };
 
-/**
- * Persistent auth:
- * - First open → anonymous sign-in + new profile
- * - Next opens → same Firebase user restored from device storage
- */
-export const autoAuthenticateAndSaveProfile = async (): Promise<UserProfile> => {
+export const loginWithUsername = async (
+  username: string,
+  password: string
+): Promise<UserProfile> => {
+  if (!username.trim() || !password) {
+    throw new Error('Enter username and password');
+  }
+
   await setPersistence(auth, browserLocalPersistence);
 
-  // Already signed in on this device?
-  if (auth.currentUser) {
-    return loadOrCreateProfile(auth.currentUser.uid);
-  }
+  const cred = await signInWithEmailAndPassword(
+    auth,
+    toAuthEmail(username),
+    password
+  );
 
-  // Wait for Firebase to restore session from local storage
-  const user = await new Promise<User | null>((resolve) => {
-    const unsub = onAuthStateChanged(auth, (u) => {
-      unsub();
-      resolve(u);
+  const profile = await loadProfile(cred.user.uid);
+  if (!profile) throw new Error('Profile not found');
+  return profile;
+};
+
+export const logoutUser = async (): Promise<void> => {
+  await signOut(auth);
+};
+
+export const changeLoginUsername = async (
+  uid: string,
+  oldUsername: string,
+  newUsername: string
+): Promise<void> => {
+  const userErr = validateUsername(newUsername);
+  if (userErr) throw new Error(userErr);
+
+  const oldKey = normalizeUsername(oldUsername);
+  const newKey = normalizeUsername(newUsername);
+
+  if (oldKey === newKey) {
+    await update(ref(rtdb, `users/${uid}`), {
+      username: newUsername.trim(),
+      lastProfileUpdate: Date.now(),
     });
-  });
-
-  if (user) {
-    return loadOrCreateProfile(user.uid);
+    return;
   }
 
-  // Truly first time on this device/browser/app
-  const cred = await signInAnonymously(auth);
-  return loadOrCreateProfile(cred.user.uid);
+  const taken = await get(ref(rtdb, `usernames/${newKey}`));
+  if (taken.exists() && taken.val() !== uid) {
+    throw new Error('Username already taken');
+  }
+
+  if (!auth.currentUser || auth.currentUser.uid !== uid) {
+    throw new Error('Not logged in');
+  }
+
+  await updateEmail(auth.currentUser, toAuthEmail(newUsername));
+  await remove(ref(rtdb, `usernames/${oldKey}`));
+  await set(ref(rtdb, `usernames/${newKey}`), uid);
+  await update(ref(rtdb, `users/${uid}`), {
+    username: newUsername.trim(),
+    lastProfileUpdate: Date.now(),
+  });
 };
