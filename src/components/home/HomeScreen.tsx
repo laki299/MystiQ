@@ -5,7 +5,8 @@ import { APP_CONFIG } from '../../config/app.config';
 interface HomeScreenProps {
   profile: UserProfile;
   onOpenDiscover: () => void;
-  onOpenProfile: () => v
+  onOpenProfile: () => void;
+  onOpenChats: () => void;
   requestCount?: number;
 }
 
