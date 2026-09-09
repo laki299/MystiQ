@@ -19,5 +19,7 @@ body {
 .scrollbar-none::-webkit-scrollbar {
   display: none;
 }
-.scrollbar-
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
