@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { initTelegramWebApp, getTelegramUser } from '../services/telegram/webapp.service';
 import { autoAuthenticateAndSaveProfile } from '../services/firebase/auth.service';
 import { UserProfile } from '../types/user.types';
 
@@ -9,20 +8,24 @@ export const useAuth = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
+
     const initAuth = async () => {
       try {
-        initTelegramWebApp();
         const userProfile = await autoAuthenticateAndSaveProfile();
-        setProfile(userProfile);
+        if (!cancelled) setProfile(userProfile);
       } catch (err: any) {
         console.error('[Auth Error]:', err);
-        setError(err?.message || 'Authentication failed');
+        if (!cancelled) setError(err?.message || 'Authentication failed');
       } finally {
-        setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       }
     };
 
     initAuth();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return {
@@ -30,6 +33,5 @@ export const useAuth = () => {
     setProfile,
     isLoading,
     error,
-    telegramUser: getTelegramUser(),
   };
 };
