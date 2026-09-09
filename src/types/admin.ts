@@ -16,6 +16,8 @@ export interface AppSettings {
   inactiveThresholdDays: number;
   rewardDurationHours: number;
   rewardedAdsEnabled: boolean;
+  appDownloadUrl: string;
+  shareMessage: string;
 }
 
 export interface AdItem {
