@@ -8,18 +8,29 @@ import { DiscoverScreen } from './components/discover/DiscoverScreen';
 import { ChatsScreen } from './components/chats/ChatsScreen';
 import { ProfileScreen } from './components/profile/ProfileScreen';
 import { AdminProtectedRoute } from './components/admin/AdminProtectedRoute';
+import { AuthScreen } from './components/auth/AuthScreen';
 import { ref, get } from 'firebase/database';
 import { rtdb } from './config/firebase.config';
 import { subscribeToIncomingRequests } from './services/firebase/request.service';
 
 export const App: React.FC = () => {
-  const { profile, setProfile, isLoading, error } = useAuth();
+  const {
+    profile,
+    setProfile,
+    isLoading,
+    login,
+    register,
+    logout,
+  } = useAuth();
+
   const [tab, setTab] = useState<TabId>('home');
   const [isAdminView, setIsAdminView] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [requestCount, setRequestCount] = useState(0);
 
-  const { count, executeSweep, isDeleting } = useExpiredCounter(profile?.uid || null);
+  const { count, executeSweep, isDeleting } = useExpiredCounter(
+    profile?.uid || null
+  );
 
   useEffect(() => {
     if (!profile?.uid) return;
@@ -41,20 +52,22 @@ export const App: React.FC = () => {
       <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4">
         <div className="text-center space-y-3">
           <div className="w-10 h-10 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-sm text-slate-400">Connecting securely to MystiQ...</p>
+          <p className="text-sm text-slate-400">Loading MystiQ...</p>
         </div>
       </div>
     );
   }
 
-  if (error || !profile) {
+  if (!profile) {
     return (
-      <div className="min-h-screen bg-slate-950 text-red-400 flex items-center justify-center p-4 text-center">
-        <div className="space-y-2">
-          <p className="text-sm font-semibold">Something went wrong</p>
-          <p className="text-xs text-slate-500">{error || 'Profile unavailable'}</p>
-        </div>
-      </div>
+      <AuthScreen
+        onLogin={async (u, p) => {
+          await login(u, p);
+        }}
+        onRegister={async (u, p, d) => {
+          await register(u, p, d);
+        }}
+      />
     );
   }
 
@@ -65,7 +78,7 @@ export const App: React.FC = () => {
           <span className="text-sm font-bold text-indigo-400">MystiQ Admin</span>
           <button
             onClick={() => setIsAdminView(false)}
-            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-lg border border-slate-700 transition"
+            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-lg border border-slate-700"
           >
             ← Back to App
           </button>
@@ -79,7 +92,9 @@ export const App: React.FC = () => {
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <div className="max-w-md mx-auto px-4 pt-4 relative min-h-screen">
         <div className="flex items-center justify-between mb-4">
-          <h1 className="text-lg font-extrabold text-purple-400 tracking-wide">MYSTIQ</h1>
+          <h1 className="text-lg font-extrabold text-purple-400 tracking-wide">
+            MYSTIQ
+          </h1>
           <span className="bg-emerald-950 text-emerald-400 border border-emerald-800 text-[10px] px-2 py-0.5 rounded-full font-semibold">
             Live
           </span>
@@ -105,10 +120,15 @@ export const App: React.FC = () => {
             onProfileUpdated={setProfile}
             isAdmin={isAdmin}
             onOpenAdmin={() => setIsAdminView(true)}
+            onLogout={logout}
           />
         )}
 
-        <QuickSweepBanner count={count} onSweep={executeSweep} isDeleting={isDeleting} />
+        <QuickSweepBanner
+          count={count}
+          onSweep={executeSweep}
+          isDeleting={isDeleting}
+        />
 
         <BottomNav active={tab} onChange={setTab} chatBadge={requestCount} />
       </div>
@@ -117,4 +137,3 @@ export const App: React.FC = () => {
 };
 
 export default App;
-                                 
