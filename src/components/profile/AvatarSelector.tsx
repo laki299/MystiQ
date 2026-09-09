@@ -22,8 +22,15 @@ export const AvatarSelector: React.FC<AvatarSelectorProps> = ({
   const [selectedStyle, setSelectedStyle] = useState('bottts');
   const [randomSeed, setRandomSeed] = useState(() => Date.now().toString());
 
-  const presets = Array.from({ length: 8 }, (_, i) => {
-    return `https://api.dicebear.com/7.x/\( {selectedStyle}/svg?seed=preset_ \){randomSeed}_${i}`;
+  const presets = [0, 1, 2, 3, 4, 5, 6, 7].map(function (i) {
+    return (
+      'https://api.dicebear.com/7.x/' +
+      selectedStyle +
+      '/svg?seed=preset_' +
+      randomSeed +
+      '_' +
+      String(i)
+    );
   });
 
   return (
