@@ -1,6 +1,7 @@
 import React from 'react';
 import { UserProfile } from '../../types/user.types';
 import { APP_CONFIG } from '../../config/app.config';
+import { ShareAppButton } from '../common/ShareAppButton';
 
 interface HomeScreenProps {
   profile: UserProfile;
@@ -43,7 +44,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 
           <div className="flex-1 min-w-0">
             <p className="text-[11px] text-slate-400">Welcome back,</p>
-            <h2 className="text-base font-bold text-white truncate">{profile.anonymousName}</h2>
+            <h2 className="text-base font-bold text-white truncate">
+              {profile.anonymousName}
+            </h2>
             <p className="text-[11px] text-emerald-400 font-medium">Online</p>
           </div>
 
@@ -57,7 +60,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
       <div>
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-bold text-white">Your Active Categories</h3>
-          <button onClick={onOpenDiscover} className="text-[11px] text-purple-400 font-semibold">
+          <button
+            onClick={onOpenDiscover}
+            className="text-[11px] text-purple-400 font-semibold"
+          >
             Manage
           </button>
         </div>
@@ -88,10 +94,14 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         </div>
         <div className="flex-1 text-left">
           <p className="text-sm font-bold text-white">Get 8 Hours Access</p>
-          <p className="text-[11px] text-purple-100/80">Watch rewarded ads to continue using MystiQ.</p>
+          <p className="text-[11px] text-purple-100/80">
+            Watch rewarded ads to continue using MystiQ.
+          </p>
         </div>
         <span className="text-white/70 text-lg">›</span>
       </button>
+
+      <ShareAppButton />
 
       <div>
         <h3 className="text-sm font-bold text-white mb-3">Quick Actions</h3>
