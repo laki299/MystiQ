@@ -70,7 +70,7 @@ export const AvatarSelector: React.FC<AvatarSelectorProps> = ({
           const isSelected = currentAvatar === url;
           return (
             <button
-              key={`\( {selectedStyle}- \){randomSeed}-${idx}`}
+              key={selectedStyle + '-' + randomSeed + '-' + String(idx)}
               type="button"
               onClick={() => onAvatarSelected(url)}
               className={`w-14 h-14 rounded-xl bg-slate-900 p-1 border-2 transition-all flex items-center justify-center overflow-hidden ${
