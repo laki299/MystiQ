@@ -2,6 +2,7 @@ export type Gender = 'male' | 'female' | 'other' | 'unspecified';
 
 export interface UserProfile {
   uid: string;
+  username: string;
   anonymousName: string;
   avatar: string;
   age: number;
