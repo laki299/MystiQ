@@ -4,11 +4,15 @@ import { UserProfile } from '../../types/user.types';
 import { PresenceUser } from '../../types/room.types';
 import { APP_CONFIG } from '../../config/app.config';
 
+function presencePath(categoryId: string, uid: string) {
+  return 'presence/' + categoryId + '/' + uid;
+}
+
 export const joinCategoryPresence = async (
   categoryId: string,
   profile: UserProfile
 ): Promise<void> => {
-  const presenceRef = ref(rtdb, `presence/\( {categoryId}/ \){profile.uid}`);
+  const presenceRef = ref(rtdb, presencePath(categoryId, profile.uid));
   const now = Date.now();
 
   const presenceData: PresenceUser = {
@@ -32,17 +36,16 @@ export const leaveCategoryPresence = async (
   categoryId: string,
   uid: string
 ): Promise<void> => {
-  const presenceRef = ref(rtdb, `presence/\( {categoryId}/ \){uid}`);
-  await remove(presenceRef);
+  await remove(ref(rtdb, presencePath(categoryId, uid)));
 };
 
 export const subscribeToCategoryPresenceList = (
   categoryId: string,
   callback: (users: PresenceUser[]) => void
 ) => {
-  const categoryPresenceRef = ref(rtdb, `presence/${categoryId}`);
+  const categoryPresenceRef = ref(rtdb, 'presence/' + categoryId);
 
-  return onValue(categoryPresenceRef, (snapshot) => {
+  return onValue(categoryPresenceRef, function (snapshot) {
     if (!snapshot.exists()) {
       callback([]);
       return;
@@ -52,7 +55,7 @@ export const subscribeToCategoryPresenceList = (
     const now = Date.now();
     const users: PresenceUser[] = [];
 
-    Object.values(data).forEach((u: any) => {
+    Object.values(data).forEach(function (u: any) {
       if (u && u.expiresAt > now) {
         users.push(u as PresenceUser);
       }
@@ -66,7 +69,7 @@ export const subscribeToCategoryPresenceCount = (
   categoryId: string,
   callback: (activeCount: number) => void
 ) => {
-  return subscribeToCategoryPresenceList(categoryId, (users) => {
+  return subscribeToCategoryPresenceList(categoryId, function (users) {
     callback(users.length);
   });
 };
