@@ -13,39 +13,51 @@ import { ref, get } from 'firebase/database';
 import { rtdb } from './config/firebase.config';
 import { subscribeToIncomingRequests } from './services/firebase/request.service';
 
-export const App: React.FC = () => {
-  const {
-    profile,
-    setProfile,
-    isLoading,
-    login,
-    register,
-    logout,
-  } = useAuth();
+export const App: React.FC = function () {
+  const authApi = useAuth();
+  const profile = authApi.profile;
+  const setProfile = authApi.setProfile;
+  const isLoading = authApi.isLoading;
+  const login = authApi.login;
+  const register = authApi.register;
+  const logout = authApi.logout;
 
   const [tab, setTab] = useState<TabId>('home');
   const [isAdminView, setIsAdminView] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [requestCount, setRequestCount] = useState(0);
 
-  const { count, executeSweep, isDeleting } = useExpiredCounter(
-    profile?.uid || null
+  const sweep = useExpiredCounter(profile ? profile.uid : null);
+  const count = sweep.count;
+  const executeSweep = sweep.executeSweep;
+  const isDeleting = sweep.isDeleting;
+
+  useEffect(
+    function () {
+      if (!profile || !profile.uid) return;
+      get(ref(rtdb, 'admins/' + profile.uid))
+        .then(function (snap) {
+          setIsAdmin(snap.exists());
+        })
+        .catch(function () {
+          setIsAdmin(false);
+        });
+    },
+    [profile ? profile.uid : null]
   );
 
-  useEffect(() => {
-    if (!profile?.uid) return;
-    get(ref(rtdb, `admins/${profile.uid}`))
-      .then((snap) => setIsAdmin(snap.exists()))
-      .catch(() => setIsAdmin(false));
-  }, [profile?.uid]);
-
-  useEffect(() => {
-    if (!profile?.uid) return;
-    const unsub = subscribeToIncomingRequests(profile.uid, (list) => {
-      setRequestCount(list.length);
-    });
-    return () => unsub();
-  }, [profile?.uid]);
+  useEffect(
+    function () {
+      if (!profile || !profile.uid) return;
+      const unsub = subscribeToIncomingRequests(profile.uid, function (list) {
+        setRequestCount(list.length);
+      });
+      return function () {
+        unsub();
+      };
+    },
+    [profile ? profile.uid : null]
+  );
 
   if (isLoading) {
     return (
@@ -61,10 +73,10 @@ export const App: React.FC = () => {
   if (!profile) {
     return (
       <AuthScreen
-        onLogin={async (u, p) => {
+        onLogin={async function (u, p) {
           await login(u, p);
         }}
-        onRegister={async (u, p, d) => {
+        onRegister={async function (u, p, d) {
           await register(u, p, d);
         }}
       />
@@ -77,10 +89,12 @@ export const App: React.FC = () => {
         <div className="p-4 max-w-7xl mx-auto flex justify-between items-center bg-slate-900/80 border-b border-slate-800">
           <span className="text-sm font-bold text-indigo-400">MystiQ Admin</span>
           <button
-            onClick={() => setIsAdminView(false)}
+            onClick={function () {
+              setIsAdminView(false);
+            }}
             className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-lg border border-slate-700"
           >
-            ← Back to App
+            Back to App
           </button>
         </div>
         <AdminProtectedRoute currentUid={profile.uid} />
@@ -100,29 +114,38 @@ export const App: React.FC = () => {
           </span>
         </div>
 
-        {tab === 'home' && (
+        {tab === 'home' ? (
           <HomeScreen
             profile={profile}
-            onOpenDiscover={() => setTab('discover')}
-            onOpenChats={() => setTab('chats')}
-            onOpenProfile={() => setTab('profile')}
+            onOpenDiscover={function () {
+              setTab('discover');
+            }}
+            onOpenChats={function () {
+              setTab('chats');
+            }}
+            onOpenProfile={function () {
+              setTab('profile');
+            }}
             requestCount={requestCount}
+            onProfileUpdated={setProfile}
           />
-        )}
+        ) : null}
 
-        {tab === 'discover' && <DiscoverScreen profile={profile} />}
+        {tab === 'discover' ? <DiscoverScreen profile={profile} /> : null}
 
-        {tab === 'chats' && <ChatsScreen profile={profile} />}
+        {tab === 'chats' ? <ChatsScreen profile={profile} /> : null}
 
-        {tab === 'profile' && (
+        {tab === 'profile' ? (
           <ProfileScreen
             profile={profile}
             onProfileUpdated={setProfile}
             isAdmin={isAdmin}
-            onOpenAdmin={() => setIsAdminView(true)}
+            onOpenAdmin={function () {
+              setIsAdminView(true);
+            }}
             onLogout={logout}
           />
-        )}
+        ) : null}
 
         <QuickSweepBanner
           count={count}
