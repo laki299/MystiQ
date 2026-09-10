@@ -67,18 +67,23 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = function (props) {
             </p>
           </div>
 
-          {profile.age > 0 ? (
-            <div className="flex flex-wrap justify-center gap-2 text-[11px] text-slate-400">
+          <div className="flex flex-wrap justify-center gap-2 text-[11px] text-slate-400">
+            {profile.age > 0 ? (
               <span className="px-2 py-1 rounded-lg bg-slate-950 border border-slate-800">
                 Age {profile.age}
               </span>
-              {profile.gender !== 'unspecified' ? (
-                <span className="px-2 py-1 rounded-lg bg-slate-950 border border-slate-800 capitalize">
-                  {profile.gender}
-                </span>
-              ) : null}
-            </div>
-          ) : null}
+            ) : null}
+            {profile.gender !== 'unspecified' ? (
+              <span className="px-2 py-1 rounded-lg bg-slate-950 border border-slate-800 capitalize">
+                {profile.gender}
+              </span>
+            ) : null}
+            {profile.language ? (
+              <span className="px-2 py-1 rounded-lg bg-slate-950 border border-slate-800">
+                {profile.language}
+              </span>
+            ) : null}
+          </div>
 
           <button
             onClick={function () {
@@ -92,6 +97,15 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = function (props) {
       </div>
 
       <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <span className="text-lg">🧹</span>
+          <div>
+            <p className="text-xs font-bold text-slate-100">Clean My Data</p>
+            <p className="text-[11px] text-slate-500">
+              Remove only your expired temporary data
+            </p>
+          </div>
+        </div>
         <div className="flex items-center justify-between">
           <p className="text-sm text-slate-300">
             Expired items:{' '}
