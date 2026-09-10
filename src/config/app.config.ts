@@ -47,4 +47,4 @@ export const APP_CONFIG = {
       color: 'from-cyan-600 to-blue-700',
     },
   ],
-} as const;
+};
