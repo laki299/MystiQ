@@ -9,9 +9,12 @@ import { ChatsScreen } from './components/chats/ChatsScreen';
 import { ProfileScreen } from './components/profile/ProfileScreen';
 import { AdminProtectedRoute } from './components/admin/AdminProtectedRoute';
 import { AuthScreen } from './components/auth/AuthScreen';
-import { ref, get } from 'firebase/database';
-import { rtdb } from './config/firebase.config';
 import { subscribeToIncomingRequests } from './services/firebase/request.service';
+
+function checkIsAdmin(role: string | undefined) {
+  if (!role) return false;
+  return role === 'admin' || role === 'super_admin';
+}
 
 export const App: React.FC = function () {
   const authApi = useAuth();
@@ -24,39 +27,14 @@ export const App: React.FC = function () {
 
   const [tab, setTab] = useState<TabId>('home');
   const [isAdminView, setIsAdminView] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
   const [requestCount, setRequestCount] = useState(0);
+
+  const isAdmin = profile ? checkIsAdmin(profile.role) : false;
 
   const sweep = useExpiredCounter(profile ? profile.uid : null);
   const count = sweep.count;
   const executeSweep = sweep.executeSweep;
   const isDeleting = sweep.isDeleting;
-
-  useEffect(
-    function () {
-      if (!profile || !profile.uid) {
-        setIsAdmin(false);
-        return;
-      }
-
-      var uid = String(profile.uid);
-
-      // Direct admin check — no APP_CONFIG needed
-      if (uid === 'VYSAvnGuvKW3AbFUNA3iLGEX1XU2') {
-        setIsAdmin(true);
-        return;
-      }
-
-      get(ref(rtdb, 'admins/' + uid))
-        .then(function (snap) {
-          setIsAdmin(snap.exists());
-        })
-        .catch(function () {
-          setIsAdmin(false);
-        });
-    },
-    [profile ? profile.uid : '']
-  );
 
   useEffect(
     function () {
