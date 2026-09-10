@@ -12,7 +12,9 @@ import { AuthScreen } from './components/auth/AuthScreen';
 import { ref, get } from 'firebase/database';
 import { rtdb } from './config/firebase.config';
 import { subscribeToIncomingRequests } from './services/firebase/request.service';
-import { APP_CONFIG } from './config/app.config';
+
+// Super admin UIDs — always work
+var HARDCODED_ADMINS = ['VYSAvnGuvKW3AbFUNA3iLGEX1XU2'];
 
 export const App: React.FC = function () {
   const authApi = useAuth();
@@ -40,30 +42,23 @@ export const App: React.FC = function () {
         return;
       }
 
-      var uid = profile.uid;
-      var list = APP_CONFIG.adminUids as readonly string[];
-      if (list.indexOf(uid) !== -1) {
+      var uid = String(profile.uid);
+      var found = false;
+      for (var i = 0; i < HARDCODED_ADMINS.length; i++) {
+        if (HARDCODED_ADMINS[i] === uid) {
+          found = true;
+          break;
+        }
+      }
+
+      if (found) {
         setIsAdmin(true);
         return;
       }
 
       get(ref(rtdb, 'admins/' + uid))
         .then(function (snap) {
-          if (!snap.exists()) {
-            setIsAdmin(false);
-            return;
-          }
-          var val = snap.val();
-          var ok = false;
-          if (val === true) ok = true;
-          else if (val && typeof val === 'object' && val.role === 'super_admin')
-            ok = true;
-          else if (val && typeof val === 'object' && val.role === 'moderator')
-            ok = true;
-          else if (val && typeof val === 'object' && val.role === 'ad_manager')
-            ok = true;
-          else if (val && typeof val === 'object') ok = true;
-          setIsAdmin(ok);
+          setIsAdmin(snap.exists());
         })
         .catch(function () {
           setIsAdmin(false);
@@ -118,7 +113,7 @@ export const App: React.FC = function () {
             onClick={function () {
               setIsAdminView(false);
             }}
-            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-lg border border-slate-700"
+            className="px-3 py-1.5 bg-slate-800 text-slate-200 text-xs font-semibold rounded-lg border border-slate-700"
           >
             Back to App
           </button>
