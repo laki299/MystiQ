@@ -13,9 +13,6 @@ import { ref, get } from 'firebase/database';
 import { rtdb } from './config/firebase.config';
 import { subscribeToIncomingRequests } from './services/firebase/request.service';
 
-// Super admin UIDs — always work
-var HARDCODED_ADMINS = ['VYSAvnGuvKW3AbFUNA3iLGEX1XU2'];
-
 export const App: React.FC = function () {
   const authApi = useAuth();
   const profile = authApi.profile;
@@ -43,15 +40,9 @@ export const App: React.FC = function () {
       }
 
       var uid = String(profile.uid);
-      var found = false;
-      for (var i = 0; i < HARDCODED_ADMINS.length; i++) {
-        if (HARDCODED_ADMINS[i] === uid) {
-          found = true;
-          break;
-        }
-      }
 
-      if (found) {
+      // Direct admin check — no APP_CONFIG needed
+      if (uid === 'VYSAvnGuvKW3AbFUNA3iLGEX1XU2') {
         setIsAdmin(true);
         return;
       }
