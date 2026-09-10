@@ -12,6 +12,7 @@ import { AuthScreen } from './components/auth/AuthScreen';
 import { ref, get } from 'firebase/database';
 import { rtdb } from './config/firebase.config';
 import { subscribeToIncomingRequests } from './services/firebase/request.service';
+import { APP_CONFIG } from './config/app.config';
 
 export const App: React.FC = function () {
   const authApi = useAuth();
@@ -40,9 +41,13 @@ export const App: React.FC = function () {
       }
 
       var uid = profile.uid;
-      var path = 'admins/' + uid;
+      var list = APP_CONFIG.adminUids as readonly string[];
+      if (list.indexOf(uid) !== -1) {
+        setIsAdmin(true);
+        return;
+      }
 
-      get(ref(rtdb, path))
+      get(ref(rtdb, 'admins/' + uid))
         .then(function (snap) {
           if (!snap.exists()) {
             setIsAdmin(false);
@@ -60,8 +65,7 @@ export const App: React.FC = function () {
           else if (val && typeof val === 'object') ok = true;
           setIsAdmin(ok);
         })
-        .catch(function (err) {
-          console.error('Admin check error', err);
+        .catch(function () {
           setIsAdmin(false);
         });
     },
