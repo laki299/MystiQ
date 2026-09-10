@@ -1,5 +1,7 @@
 export type Gender = 'male' | 'female' | 'other' | 'unspecified';
 
+export type UserRole = 'user' | 'admin' | 'super_admin';
+
 export interface UserProfile {
   uid: string;
   username: string;
@@ -13,6 +15,7 @@ export interface UserProfile {
   profession: string;
   interests: string[];
   bio: string;
+  role?: UserRole;
   preferences?: {
     showAge?: boolean;
     showCity?: boolean;
