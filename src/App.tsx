@@ -34,29 +34,51 @@ export const App: React.FC = function () {
 
   useEffect(
     function () {
-      if (!profile || !profile.uid) return;
-      get(ref(rtdb, 'admins/' + profile.uid))
+      if (!profile || !profile.uid) {
+        setIsAdmin(false);
+        return;
+      }
+
+      var uid = profile.uid;
+      var path = 'admins/' + uid;
+
+      get(ref(rtdb, path))
         .then(function (snap) {
-          setIsAdmin(snap.exists());
+          if (!snap.exists()) {
+            setIsAdmin(false);
+            return;
+          }
+          var val = snap.val();
+          var ok = false;
+          if (val === true) ok = true;
+          else if (val && typeof val === 'object' && val.role === 'super_admin')
+            ok = true;
+          else if (val && typeof val === 'object' && val.role === 'moderator')
+            ok = true;
+          else if (val && typeof val === 'object' && val.role === 'ad_manager')
+            ok = true;
+          else if (val && typeof val === 'object') ok = true;
+          setIsAdmin(ok);
         })
-        .catch(function () {
+        .catch(function (err) {
+          console.error('Admin check error', err);
           setIsAdmin(false);
         });
     },
-    [profile ? profile.uid : null]
+    [profile ? profile.uid : '']
   );
 
   useEffect(
     function () {
       if (!profile || !profile.uid) return;
-      const unsub = subscribeToIncomingRequests(profile.uid, function (list) {
+      var unsub = subscribeToIncomingRequests(profile.uid, function (list) {
         setRequestCount(list.length);
       });
       return function () {
         unsub();
       };
     },
-    [profile ? profile.uid : null]
+    [profile ? profile.uid : '']
   );
 
   if (isLoading) {
