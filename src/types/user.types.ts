@@ -17,6 +17,7 @@ export interface UserProfile {
     showAge?: boolean;
     showCity?: boolean;
   };
+  activeCategories?: Record<string, boolean>;
   createdAt: number;
   lastActiveAt: number;
   lastProfileUpdate?: number;
