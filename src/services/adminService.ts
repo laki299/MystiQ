@@ -97,7 +97,9 @@ export const fetchSystemAnalytics = async (): Promise<SystemAnalytics> => {
     const reqs = reqSnap.val();
     Object.keys(reqs).forEach(function (id) {
       const r = reqs[id];
-      if (r && r.status === 'pending' && r.expiresAt > now) totalPendingRequests++;
+      if (r && r.status === 'pending' && r.expiresAt > now) {
+        totalPendingRequests++;
+      }
     });
   }
 
@@ -105,7 +107,9 @@ export const fetchSystemAnalytics = async (): Promise<SystemAnalytics> => {
   if (reportsSnap.exists()) {
     const reports = reportsSnap.val();
     Object.keys(reports).forEach(function (id) {
-      if (reports[id] && reports[id].status === 'pending') totalReportsPending++;
+      if (reports[id] && reports[id].status === 'pending') {
+        totalReportsPending++;
+      }
     });
   }
 
@@ -160,12 +164,16 @@ export const createAd = async (
     views: 0,
   };
   await set(newAdRef, newAd);
-  await logAdminAction(
-    adminUid,
-    role,
-    'CREATE_AD',
-    'Created ad: ' + adData.title
-  );
+  try {
+    await logAdminAction(
+      adminUid,
+      role,
+      'CREATE_AD',
+      'Created ad: ' + adData.title
+    );
+  } catch (e) {
+    console.warn('Audit log skipped', e);
+  }
   return newAd;
 };
 
@@ -176,12 +184,16 @@ export const updateAdStatus = async (
   status: 'active' | 'paused'
 ) => {
   await update(ref(rtdb, 'ads/' + adId), { status: status });
-  await logAdminAction(
-    adminUid,
-    role,
-    'UPDATE_AD_STATUS',
-    'Ad ' + adId + ' -> ' + status
-  );
+  try {
+    await logAdminAction(
+      adminUid,
+      role,
+      'UPDATE_AD_STATUS',
+      'Ad ' + adId + ' -> ' + status
+    );
+  } catch (e) {
+    console.warn('Audit log skipped', e);
+  }
 };
 
 export const deleteAd = async (
@@ -190,7 +202,11 @@ export const deleteAd = async (
   adId: string
 ) => {
   await remove(ref(rtdb, 'ads/' + adId));
-  await logAdminAction(adminUid, role, 'DELETE_AD', 'Deleted ad ' + adId);
+  try {
+    await logAdminAction(adminUid, role, 'DELETE_AD', 'Deleted ad ' + adId);
+  } catch (e) {
+    console.warn('Audit log skipped', e);
+  }
 };
 
 export const fetchAppSettings = async (): Promise<AppSettings> => {
@@ -218,12 +234,16 @@ export const updateAppSettings = async (
   settings: AppSettings
 ) => {
   await set(ref(rtdb, 'app_settings'), settings);
-  await logAdminAction(
-    adminUid,
-    role,
-    'UPDATE_APP_SETTINGS',
-    'Updated global settings'
-  );
+  try {
+    await logAdminAction(
+      adminUid,
+      role,
+      'UPDATE_APP_SETTINGS',
+      'Updated global settings'
+    );
+  } catch (e) {
+    console.warn('Audit log skipped', e);
+  }
 };
 
 export const fetchUserReports = async (): Promise<UserReport[]> => {
@@ -263,19 +283,23 @@ export const resolveUserReport = async (
     });
   }
 
-  await logAdminAction(
-    adminUid,
-    role,
-    'RESOLVE_REPORT',
-    'Report ' +
-      reportId +
-      ' -> ' +
-      status +
-      ', action: ' +
-      actionTaken +
-      ', target: ' +
-      targetUid
-  );
+  try {
+    await logAdminAction(
+      adminUid,
+      role,
+      'RESOLVE_REPORT',
+      'Report ' +
+        reportId +
+        ' -> ' +
+        status +
+        ', action: ' +
+        actionTaken +
+        ', target: ' +
+        targetUid
+    );
+  } catch (e) {
+    console.warn('Audit log skipped', e);
+  }
 };
 
 export const fetchAuditLogs = async (
@@ -298,7 +322,6 @@ export const fetchAuditLogs = async (
     });
 };
 
-/** Fixed cleanup — string paths only */
 export const adminDeleteExpiredMessages = async (
   adminUid: string,
   role: AdminRole
@@ -325,17 +348,20 @@ export const adminDeleteExpiredMessages = async (
 
   if (deleted > 0) {
     await update(ref(rtdb), updates);
-    await logAdminAction(
-      adminUid,
-      role,
-      'CLEANUP_EXPIRED_MESSAGES',
-      'Deleted ' + deleted + ' expired messages'
-    );
+    try {
+      await logAdminAction(
+        adminUid,
+        role,
+        'CLEANUP_EXPIRED_MESSAGES',
+        'Deleted ' + deleted + ' expired messages'
+      );
+    } catch (e) {
+      console.warn('Audit log skipped', e);
+    }
   }
   return deleted;
 };
 
-/** Count unique online users from presence (for Spark 100 limit) */
 export const countOnlineUsers = async (): Promise<number> => {
   const presenceSnap = await get(ref(rtdb, 'presence'));
   if (!presenceSnap.exists()) return 0;
