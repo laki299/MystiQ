@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from './hooks/useAuth';
 import { useExpiredCounter } from './hooks/useExpiredCounter';
 import { QuickSweepBanner } from './components/common/QuickSweepBanner';
+import { ServerFullScreen } from './components/common/ServerFullScreen';
 import { BottomNav, TabId } from './components/layout/BottomNav';
 import { HomeScreen } from './components/home/HomeScreen';
 import { DiscoverScreen } from './components/discover/DiscoverScreen';
@@ -10,6 +11,10 @@ import { ProfileScreen } from './components/profile/ProfileScreen';
 import { AdminProtectedRoute } from './components/admin/AdminProtectedRoute';
 import { AuthScreen } from './components/auth/AuthScreen';
 import { subscribeToIncomingRequests } from './services/firebase/request.service';
+import {
+  fetchAppSettings,
+  countOnlineUsers,
+} from './services/adminService';
 
 function checkIsAdmin(role: string | undefined) {
   if (!role) return false;
@@ -28,6 +33,10 @@ export const App: React.FC = function () {
   const [tab, setTab] = useState<TabId>('home');
   const [isAdminView, setIsAdminView] = useState(false);
   const [requestCount, setRequestCount] = useState(0);
+  const [serverFull, setServerFull] = useState(false);
+  const [onlineCount, setOnlineCount] = useState(0);
+  const [maxUsers, setMaxUsers] = useState(85);
+  const [capacityChecked, setCapacityChecked] = useState(false);
 
   const isAdmin = profile ? checkIsAdmin(profile.role) : false;
 
@@ -35,6 +44,41 @@ export const App: React.FC = function () {
   const count = sweep.count;
   const executeSweep = sweep.executeSweep;
   const isDeleting = sweep.isDeleting;
+
+  const checkCapacity = useCallback(async function () {
+    if (!profile) return;
+    if (checkIsAdmin(profile.role)) {
+      setServerFull(false);
+      setCapacityChecked(true);
+      return;
+    }
+    try {
+      var settings = await fetchAppSettings();
+      var max = settings.maxConcurrentUsers || 85;
+      setMaxUsers(max);
+      var online = await countOnlineUsers();
+      setOnlineCount(online);
+      // Allow if already in presence (online includes self soon) — block only if at/over limit
+      setServerFull(online >= max);
+    } catch (err) {
+      console.error(err);
+      setServerFull(false);
+    } finally {
+      setCapacityChecked(true);
+    }
+  }, [profile]);
+
+  useEffect(
+    function () {
+      if (!profile) {
+        setCapacityChecked(false);
+        setServerFull(false);
+        return;
+      }
+      checkCapacity();
+    },
+    [profile ? profile.uid : '', checkCapacity]
+  );
 
   useEffect(
     function () {
@@ -69,6 +113,20 @@ export const App: React.FC = function () {
         onRegister={async function (u, p, d) {
           await register(u, p, d);
         }}
+      />
+    );
+  }
+
+  if (capacityChecked && serverFull && !isAdmin) {
+    return (
+      <ServerFullScreen
+        onlineCount={onlineCount}
+        maxUsers={maxUsers}
+        onRetry={function () {
+          setCapacityChecked(false);
+          checkCapacity();
+        }}
+        onLogout={logout}
       />
     );
   }
