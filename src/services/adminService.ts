@@ -328,37 +328,87 @@ export const adminDeleteExpiredMessages = async (
 ): Promise<number> => {
   const now = Date.now();
   let deleted = 0;
-  const convSnap = await get(ref(rtdb, 'conversations'));
-  if (!convSnap.exists()) return 0;
-
   const updates: Record<string, null> = {};
-  const convs = convSnap.val();
 
-  for (const convId of Object.keys(convs)) {
-    const msgSnap = await get(ref(rtdb, 'messages/' + convId));
-    if (!msgSnap.exists()) continue;
-    const msgs = msgSnap.val();
-    for (const msgId of Object.keys(msgs)) {
-      if (msgs[msgId] && msgs[msgId].expiresAt <= now) {
-        updates['messages/' + convId + '/' + msgId] = null;
-        deleted++;
+  try {
+    const convSnap = await get(ref(rtdb, 'conversations'));
+    if (convSnap.exists()) {
+      const convs = convSnap.val();
+      for (const convId of Object.keys(convs)) {
+        try {
+          const msgSnap = await get(ref(rtdb, 'messages/' + convId));
+          if (!msgSnap.exists()) continue;
+          const msgs = msgSnap.val();
+          for (const msgId of Object.keys(msgs)) {
+            const m = msgs[msgId];
+            if (m && typeof m.expiresAt === 'number' && m.expiresAt <= now) {
+              updates['messages/' + convId + '/' + msgId] = null;
+              deleted++;
+            }
+          }
+        } catch (inner) {
+          console.warn('Skip conv messages', convId, inner);
+        }
       }
     }
+  } catch (e) {
+    console.warn('conversations scan failed', e);
   }
 
-  if (deleted > 0) {
-    await update(ref(rtdb), updates);
-    try {
-      await logAdminAction(
-        adminUid,
-        role,
-        'CLEANUP_EXPIRED_MESSAGES',
-        'Deleted ' + deleted + ' expired messages'
-      );
-    } catch (e) {
-      console.warn('Audit log skipped', e);
+  try {
+    const allMsgSnap = await get(ref(rtdb, 'messages'));
+    if (allMsgSnap.exists()) {
+      const all = allMsgSnap.val();
+      for (const convId of Object.keys(all)) {
+        const msgs = all[convId];
+        if (!msgs || typeof msgs !== 'object') continue;
+        for (const msgId of Object.keys(msgs)) {
+          const m = msgs[msgId];
+          if (m && typeof m.expiresAt === 'number' && m.expiresAt <= now) {
+            const path = 'messages/' + convId + '/' + msgId;
+            if (updates[path] === undefined) {
+              updates[path] = null;
+              deleted++;
+            }
+          }
+        }
+      }
     }
+  } catch (e2) {
+    console.warn('messages root scan failed', e2);
   }
+
+  try {
+    const reqSnap = await get(ref(rtdb, 'chatRequests'));
+    if (reqSnap.exists()) {
+      const reqs = reqSnap.val();
+      for (const id of Object.keys(reqs)) {
+        const r = reqs[id];
+        if (r && typeof r.expiresAt === 'number' && r.expiresAt <= now) {
+          updates['chatRequests/' + id] = null;
+          deleted++;
+        }
+      }
+    }
+  } catch (e3) {
+    console.warn('chatRequests scan failed', e3);
+  }
+
+  if (Object.keys(updates).length > 0) {
+    await update(ref(rtdb), updates);
+  }
+
+  try {
+    await logAdminAction(
+      adminUid,
+      role,
+      'CLEANUP_EXPIRED_MESSAGES',
+      'Deleted ' + deleted + ' expired items'
+    );
+  } catch (e4) {
+    console.warn('Audit log skipped', e4);
+  }
+
   return deleted;
 };
 
