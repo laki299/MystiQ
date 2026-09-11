@@ -18,7 +18,6 @@ export interface AppSettings {
   rewardedAdsEnabled: boolean;
   appDownloadUrl: string;
   shareMessage: string;
-  /** Spark free plan \~100 connections — keep under this */
   maxConcurrentUsers: number;
 }
 
