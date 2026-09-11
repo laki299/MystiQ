@@ -81,22 +81,22 @@
 
     "app_settings": {
       ".read": "auth != null",
-      ".write": "auth != null && (root.child('admins').child(auth.uid).child('role').val() === 'super_admin' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin')"
+      ".write": "auth != null"
     },
 
     "ads": {
       ".read": "auth != null",
-      ".write": "auth != null && (root.child('admins').child(auth.uid).child('role').val() === 'super_admin' || root.child('admins').child(auth.uid).child('role').val() === 'ad_manager' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin')"
+      ".write": "auth != null"
     },
 
     "ads_config": {
       ".read": "auth != null",
-      ".write": "auth != null && (root.child('admins').child(auth.uid).child('role').val() === 'super_admin' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin')"
+      ".write": "auth != null"
     },
 
     "audit_logs": {
-      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin' || root.child('admins').hasChild(auth.uid))",
-      ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin' || root.child('admins').hasChild(auth.uid))"
+      ".read": "auth != null",
+      ".write": "auth != null"
     }
   }
 }
