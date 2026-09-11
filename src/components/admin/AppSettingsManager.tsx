@@ -41,6 +41,10 @@ export const AppSettingsManager: React.FC<AppSettingsManagerProps> = function (
   var successMsg = successState[0];
   var setSuccessMsg = successState[1];
 
+  var errorState = useState('');
+  var errorMsg = errorState[0];
+  var setErrorMsg = errorState[1];
+
   useEffect(function () {
     async function loadSettings() {
       setLoading(true);
@@ -48,7 +52,8 @@ export const AppSettingsManager: React.FC<AppSettingsManagerProps> = function (
         var data = await fetchAppSettings();
         setSettings(data);
       } catch (err) {
-        console.error('Error fetching app settings:', err);
+        console.error(err);
+        setErrorMsg('Failed to load settings');
       } finally {
         setLoading(false);
       }
@@ -68,14 +73,19 @@ export const AppSettingsManager: React.FC<AppSettingsManagerProps> = function (
     e.preventDefault();
     setSaving(true);
     setSuccessMsg('');
+    setErrorMsg('');
     try {
       await updateAppSettings(adminUid, adminRole, settings);
       setSuccessMsg('Settings saved successfully.');
       setTimeout(function () {
         setSuccessMsg('');
       }, 3000);
-    } catch (err) {
-      console.error('Error updating settings:', err);
+    } catch (err: any) {
+      console.error(err);
+      setErrorMsg(
+        'Save failed: ' +
+          (err && err.message ? err.message : 'permission denied or network')
+      );
     } finally {
       setSaving(false);
     }
@@ -104,15 +114,17 @@ export const AppSettingsManager: React.FC<AppSettingsManagerProps> = function (
         </div>
       ) : null}
 
+      {errorMsg ? (
+        <div className="p-3 bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-semibold rounded-lg">
+          {errorMsg}
+        </div>
+      ) : null}
+
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Share / Download */}
         <div className="p-4 bg-slate-800/60 rounded-lg border border-purple-500/30 space-y-3">
           <h3 className="text-xs font-bold text-purple-300 uppercase">
             App Share & Download Link
           </h3>
-          <p className="text-[11px] text-slate-400">
-            Google Drive / APK link. Change anytime when Drive hits limit.
-          </p>
           <div>
             <label className="block text-xs text-slate-400 mb-1">
               Download URL
@@ -123,8 +135,7 @@ export const AppSettingsManager: React.FC<AppSettingsManagerProps> = function (
               onChange={function (e) {
                 handleChange('appDownloadUrl', e.target.value);
               }}
-              placeholder="https://drive.google.com/..."
-              className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm focus:outline-none focus:border-purple-500"
+              className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm"
               required
             />
           </div>
@@ -138,19 +149,17 @@ export const AppSettingsManager: React.FC<AppSettingsManagerProps> = function (
               onChange={function (e) {
                 handleChange('shareMessage', e.target.value);
               }}
-              className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm focus:outline-none focus:border-purple-500 resize-none"
+              className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm resize-none"
             />
           </div>
         </div>
 
-        {/* Spark concurrent limit */}
         <div className="p-4 bg-amber-950/30 rounded-lg border border-amber-500/30 space-y-3">
           <h3 className="text-xs font-bold text-amber-300 uppercase">
             Spark Plan — Concurrent Users
           </h3>
           <p className="text-[11px] text-slate-400">
-            Firebase Free allows about 100 simultaneous connections. Keep this
-            under 90 for safety.
+            Firebase Free \~100 connections. Keep under 90.
           </p>
           <div>
             <label className="block text-xs text-slate-400 mb-1">
@@ -164,13 +173,9 @@ export const AppSettingsManager: React.FC<AppSettingsManagerProps> = function (
               onChange={function (e) {
                 handleChange('maxConcurrentUsers', Number(e.target.value));
               }}
-              className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm focus:outline-none focus:border-amber-500"
+              className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm"
               required
             />
-            <p className="text-[10px] text-slate-500 mt-1">
-              Recommended: 80–85. When online users reach this limit, new users
-              will see Server Full.
-            </p>
           </div>
         </div>
 
@@ -298,11 +303,11 @@ export const AppSettingsManager: React.FC<AppSettingsManagerProps> = function (
                 onChange={function (e) {
                   handleChange('rewardedAdsEnabled', e.target.checked);
                 }}
-                className="w-4 h-4 accent-blue-600 rounded cursor-pointer"
+                className="w-4 h-4 accent-blue-600 rounded"
               />
               <label
                 htmlFor="rewardedAdsEnabled"
-                className="text-xs font-medium text-slate-300 cursor-pointer"
+                className="text-xs font-medium text-slate-300"
               >
                 Enable Rewarded Ads System
               </label>
@@ -314,7 +319,7 @@ export const AppSettingsManager: React.FC<AppSettingsManagerProps> = function (
           <button
             type="submit"
             disabled={saving}
-            className="px-6 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 text-xs font-bold rounded-lg transition shadow-lg"
+            className="px-6 py-2 bg-blue-600 disabled:bg-slate-700 text-xs font-bold rounded-lg"
           >
             {saving ? 'Saving...' : 'Save System Settings'}
           </button>
