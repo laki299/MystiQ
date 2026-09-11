@@ -28,32 +28,32 @@
 
     "chatRequests": {
       "$requestId": {
-        ".read": "auth != null && (data.child('fromUid').val() === auth.uid || data.child('toUid').val() === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin' || root.child('admins').hasChild(auth.uid))",
-        ".write": "auth != null && ((!data.exists() && newData.child('fromUid').val() === auth.uid) || (data.exists() && (data.child('fromUid').val() === auth.uid || data.child('toUid').val() === auth.uid)) || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('admins').hasChild(auth.uid))"
+        ".read": "auth != null",
+        ".write": "auth != null"
       }
     },
 
     "conversations": {
       "$conversationId": {
-        ".read": "auth != null && (data.child('participants').child(auth.uid).val() === true || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('admins').hasChild(auth.uid))",
-        ".write": "auth != null && (!data.exists() || data.child('participants').child(auth.uid).val() === true || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('admins').hasChild(auth.uid))"
+        ".read": "auth != null",
+        ".write": "auth != null"
       }
     },
 
     "messages": {
       "$conversationId": {
-        ".read": "auth != null && (root.child('conversations').child($conversationId).child('participants').child(auth.uid).val() === true || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('admins').hasChild(auth.uid))",
+        ".read": "auth != null",
         "$messageId": {
-          ".write": "auth != null && ((root.child('conversations').child($conversationId).child('participants').child(auth.uid).val() === true && newData.child('senderId').val() === auth.uid) || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('admins').hasChild(auth.uid))"
+          ".write": "auth != null && (!newData.exists() || newData.child('senderId').val() === auth.uid || newData.child('senderUid').val() === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin' || root.child('admins').hasChild(auth.uid))"
         }
       }
     },
 
     "voiceMessages": {
       "$conversationId": {
-        ".read": "auth != null && (root.child('conversations').child($conversationId).child('participants').child(auth.uid).val() === true || root.child('admins').hasChild(auth.uid))",
+        ".read": "auth != null",
         "$messageId": {
-          ".write": "auth != null && ((root.child('conversations').child($conversationId).child('participants').child(auth.uid).val() === true && newData.child('senderId').val() === auth.uid) || root.child('admins').hasChild(auth.uid))"
+          ".write": "auth != null && (!newData.exists() || newData.child('senderId').val() === auth.uid || root.child('admins').hasChild(auth.uid))"
         }
       }
     },
@@ -66,31 +66,31 @@
     },
 
     "reports": {
-      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin' || root.child('admins').hasChild(auth.uid))",
+      ".read": "auth != null",
       "$reportId": {
-        ".write": "auth != null && ((!data.exists() && (newData.child('reporterId').val() === auth.uid || newData.child('reporterUid').val() === auth.uid)) || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('admins').hasChild(auth.uid))"
+        ".write": "auth != null"
       }
     },
 
     "admins": {
       ".read": "auth != null",
       "$uid": {
-        ".write": "auth != null && (root.child('admins').child(auth.uid).child('role').val() === 'super_admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin')"
+        ".write": "auth != null"
       }
     },
 
     "app_settings": {
-      ".read": "auth != null",
+      ".read": true,
       ".write": "auth != null"
     },
 
     "ads": {
-      ".read": "auth != null",
+      ".read": true,
       ".write": "auth != null"
     },
 
     "ads_config": {
-      ".read": "auth != null",
+      ".read": true,
       ".write": "auth != null"
     },
 
