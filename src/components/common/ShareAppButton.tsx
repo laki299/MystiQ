@@ -1,27 +1,34 @@
 import React, { useEffect, useState } from 'react';
 import { fetchAppSettings } from '../../services/adminService';
 
-export const ShareAppButton: React.FC = () => {
-  const [downloadUrl, setDownloadUrl] = useState(
-    'https://mysti-q-flame.vercel.app'
-  );
-  const [shareMessage, setShareMessage] = useState(
+export const ShareAppButton: React.FC = function () {
+  var downloadState = useState('https://mysti-q-flame.vercel.app');
+  var downloadUrl = downloadState[0];
+  var setDownloadUrl = downloadState[1];
+
+  var messageState = useState(
     'MystiQ — Anonymous chat. Download / open here:'
   );
-  const [copied, setCopied] = useState(false);
+  var shareMessage = messageState[0];
+  var setShareMessage = messageState[1];
 
-  useEffect(() => {
+  var copiedState = useState(false);
+  var copied = copiedState[0];
+  var setCopied = copiedState[1];
+
+  useEffect(function () {
     fetchAppSettings()
-      .then((s) => {
+      .then(function (s) {
         if (s.appDownloadUrl) setDownloadUrl(s.appDownloadUrl);
         if (s.shareMessage) setShareMessage(s.shareMessage);
       })
-      .catch(() => {});
+      .catch(function () {});
   }, []);
 
-  const fullText = `\( {shareMessage}\n \){downloadUrl}`;
+  // String concat only — no template literals
+  var fullText = shareMessage + '\n' + downloadUrl;
 
-  const handleShare = async () => {
+  async function handleShare() {
     try {
       if (navigator.share) {
         await navigator.share({
@@ -31,21 +38,24 @@ export const ShareAppButton: React.FC = () => {
         });
         return;
       }
-    } catch {
-      // copy fallback
+    } catch (e) {
+      // fallback to copy
     }
 
     try {
       await navigator.clipboard.writeText(fullText);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
+      setTimeout(function () {
+        setCopied(false);
+      }, 2000);
+    } catch (e2) {
       window.prompt('Copy this link:', fullText);
     }
-  };
+  }
 
   return (
     <button
+      type="button"
       onClick={handleShare}
       className="w-full rounded-2xl border border-purple-500/30 bg-purple-600/15 hover:bg-purple-600/25 p-4 flex items-center gap-3 active:scale-[0.99] transition"
     >
