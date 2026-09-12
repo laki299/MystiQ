@@ -3,6 +3,7 @@ import { ref, update } from 'firebase/database';
 import { UserProfile } from '../../types/user.types';
 import { APP_CONFIG } from '../../config/app.config';
 import { ShareAppButton } from '../common/ShareAppButton';
+import { InHouseAdBanner } from '../common/InHouseAdBanner';
 import { useMultiPresence } from '../../hooks/useMultiPresence';
 import { rtdb } from '../../config/firebase.config';
 
@@ -119,10 +120,13 @@ export const HomeScreen: React.FC<HomeScreenProps> = function (props) {
         </div>
       </div>
 
+      <InHouseAdBanner />
+
       <div>
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-sm font-bold text-white">Your Active Categories</h3>
           <button
+            type="button"
             onClick={onOpenDiscover}
             className="text-[11px] text-purple-400 font-semibold"
           >
@@ -176,7 +180,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = function (props) {
         </div>
       </div>
 
-      <button className="w-full rounded-2xl bg-gradient-to-r from-purple-600 via-violet-600 to-indigo-600 p-4 flex items-center gap-3 shadow-lg shadow-purple-900/40">
+      <button
+        type="button"
+        className="w-full rounded-2xl bg-gradient-to-r from-purple-600 via-violet-600 to-indigo-600 p-4 flex items-center gap-3 shadow-lg shadow-purple-900/40"
+      >
         <div className="w-11 h-11 rounded-xl bg-white/15 flex items-center justify-center text-2xl">
           🎁
         </div>
@@ -195,6 +202,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = function (props) {
         <h3 className="text-sm font-bold text-white mb-3">Quick Actions</h3>
         <div className="grid grid-cols-4 gap-2.5">
           <button
+            type="button"
             onClick={onOpenDiscover}
             className="flex flex-col items-center gap-1.5"
           >
@@ -207,6 +215,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = function (props) {
           </button>
 
           <button
+            type="button"
             onClick={onOpenChats}
             className="flex flex-col items-center gap-1.5 relative"
           >
@@ -224,6 +233,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = function (props) {
           </button>
 
           <button
+            type="button"
             onClick={onOpenProfile}
             className="flex flex-col items-center gap-1.5"
           >
@@ -236,6 +246,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = function (props) {
           </button>
 
           <button
+            type="button"
             onClick={onOpenProfile}
             className="flex flex-col items-center gap-1.5"
           >
