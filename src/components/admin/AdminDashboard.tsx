@@ -6,6 +6,7 @@ import { AppSettingsManager } from './AppSettingsManager';
 import { ReportManager } from './ReportManager';
 import { AuditLogViewer } from './AuditLogViewer';
 import { UsersManager } from './UsersManager';
+import { HostManager } from './HostManager';
 import { adminDeleteExpiredMessages } from '../../services/adminService';
 
 interface AdminDashboardProps {
@@ -21,6 +22,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = function (props) {
     'analytics' as
       | 'analytics'
       | 'users'
+      | 'hosts'
       | 'ads'
       | 'settings'
       | 'reports'
@@ -41,11 +43,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = function (props) {
   var tabs = [
     { id: 'analytics' as const, label: 'Analytics', active: 'bg-indigo-600' },
     { id: 'users' as const, label: 'Users', active: 'bg-cyan-600' },
+    { id: 'hosts' as const, label: 'Hosts', active: 'bg-emerald-600' },
     { id: 'ads' as const, label: 'Ads', active: 'bg-amber-600' },
     { id: 'settings' as const, label: 'Settings', active: 'bg-blue-600' },
     { id: 'reports' as const, label: 'Reports', active: 'bg-rose-600' },
     { id: 'logs' as const, label: 'Logs', active: 'bg-purple-600' },
-    { id: 'cleanup' as const, label: 'Cleanup', active: 'bg-emerald-600' },
+    { id: 'cleanup' as const, label: 'Cleanup', active: 'bg-teal-600' },
   ];
 
   async function runCleanup() {
@@ -109,6 +112,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = function (props) {
       <div>
         {activeTab === 'analytics' ? <AnalyticsDashboard /> : null}
         {activeTab === 'users' ? <UsersManager /> : null}
+        {activeTab === 'hosts' ? <HostManager adminUid={adminUid} /> : null}
         {activeTab === 'ads' ? (
           <AdManager adminUid={adminUid} adminRole={adminRole} />
         ) : null}
