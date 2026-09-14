@@ -25,6 +25,13 @@ export const AppSettingsManager: React.FC<AppSettingsManagerProps> = function (
     appDownloadUrl: 'https://mysti-q-flame.vercel.app',
     shareMessage: 'MystiQ — Anonymous chat. Download / open here:',
     maxConcurrentUsers: 85,
+    networkAdsEnabled: false,
+    firstAdAfterSec: 120,
+    adIntervalSec: 300,
+    maxAdsPerSession: 6,
+    coinsPerAdView: 1,
+    hostPoolPercent: 40,
+    minWithdrawCoins: 100,
   } as AppSettings);
   var settings = settingsState[0];
   var setSettings = settingsState[1];
@@ -104,7 +111,7 @@ export const AppSettingsManager: React.FC<AppSettingsManagerProps> = function (
       <div className="border-b border-slate-800 pb-4">
         <h2 className="text-xl font-bold text-blue-400">App Configuration</h2>
         <p className="text-xs text-slate-400">
-          Limits, rewards, share link, concurrent users
+          Limits, network ads, coins, share link
         </p>
       </div>
 
@@ -131,7 +138,7 @@ export const AppSettingsManager: React.FC<AppSettingsManagerProps> = function (
             </label>
             <input
               type="url"
-              value={settings.appDownloadUrl}
+              value={settings.appDownloadUrl || ''}
               onChange={function (e) {
                 handleChange('appDownloadUrl', e.target.value);
               }}
@@ -145,7 +152,7 @@ export const AppSettingsManager: React.FC<AppSettingsManagerProps> = function (
             </label>
             <textarea
               rows={2}
-              value={settings.shareMessage}
+              value={settings.shareMessage || ''}
               onChange={function (e) {
                 handleChange('shareMessage', e.target.value);
               }}
@@ -156,11 +163,8 @@ export const AppSettingsManager: React.FC<AppSettingsManagerProps> = function (
 
         <div className="p-4 bg-amber-950/30 rounded-lg border border-amber-500/30 space-y-3">
           <h3 className="text-xs font-bold text-amber-300 uppercase">
-            Spark Plan — Concurrent Users
+            Concurrent Users
           </h3>
-          <p className="text-[11px] text-slate-400">
-            Firebase Free \~100 connections. Keep under 90.
-          </p>
           <div>
             <label className="block text-xs text-slate-400 mb-1">
               Max Concurrent Users
@@ -168,14 +172,129 @@ export const AppSettingsManager: React.FC<AppSettingsManagerProps> = function (
             <input
               type="number"
               min={10}
-              max={100}
-              value={settings.maxConcurrentUsers}
+              max={200}
+              value={settings.maxConcurrentUsers || 85}
               onChange={function (e) {
                 handleChange('maxConcurrentUsers', Number(e.target.value));
               }}
               className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm"
               required
             />
+          </div>
+        </div>
+
+        <div className="p-4 bg-rose-950/20 rounded-lg border border-rose-500/30 space-y-3">
+          <h3 className="text-xs font-bold text-rose-300 uppercase">
+            Network Ads (off until company scripts ready)
+          </h3>
+          <p className="text-[11px] text-slate-400">
+            Keep OFF so the app runs without ads. Turn ON only after ad_networks
+            are configured. Admins never see ads.
+          </p>
+          <div className="flex items-center space-x-3">
+            <input
+              type="checkbox"
+              id="networkAdsEnabled"
+              checked={!!settings.networkAdsEnabled}
+              onChange={function (e) {
+                handleChange('networkAdsEnabled', e.target.checked);
+              }}
+              className="w-4 h-4 accent-rose-600 rounded"
+            />
+            <label
+              htmlFor="networkAdsEnabled"
+              className="text-xs font-medium text-slate-300"
+            >
+              Enable network ads
+            </label>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">
+                First ad after (sec)
+              </label>
+              <input
+                type="number"
+                value={settings.firstAdAfterSec || 120}
+                onChange={function (e) {
+                  handleChange('firstAdAfterSec', Number(e.target.value));
+                }}
+                className="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">
+                Interval (sec)
+              </label>
+              <input
+                type="number"
+                value={settings.adIntervalSec || 300}
+                onChange={function (e) {
+                  handleChange('adIntervalSec', Number(e.target.value));
+                }}
+                className="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">
+                Max ads / session
+              </label>
+              <input
+                type="number"
+                value={settings.maxAdsPerSession || 6}
+                onChange={function (e) {
+                  handleChange('maxAdsPerSession', Number(e.target.value));
+                }}
+                className="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded text-sm"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="p-4 bg-emerald-950/20 rounded-lg border border-emerald-500/30 space-y-3">
+          <h3 className="text-xs font-bold text-emerald-300 uppercase">
+            Host Coins
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">
+                Coins per ad view
+              </label>
+              <input
+                type="number"
+                value={settings.coinsPerAdView || 1}
+                onChange={function (e) {
+                  handleChange('coinsPerAdView', Number(e.target.value));
+                }}
+                className="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">
+                Host pool %
+              </label>
+              <input
+                type="number"
+                value={settings.hostPoolPercent || 40}
+                onChange={function (e) {
+                  handleChange('hostPoolPercent', Number(e.target.value));
+                }}
+                className="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">
+                Min withdraw coins
+              </label>
+              <input
+                type="number"
+                value={settings.minWithdrawCoins || 100}
+                onChange={function (e) {
+                  handleChange('minWithdrawCoins', Number(e.target.value));
+                }}
+                className="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded text-sm"
+              />
+            </div>
           </div>
         </div>
 
@@ -299,7 +418,7 @@ export const AppSettingsManager: React.FC<AppSettingsManagerProps> = function (
               <input
                 type="checkbox"
                 id="rewardedAdsEnabled"
-                checked={settings.rewardedAdsEnabled}
+                checked={!!settings.rewardedAdsEnabled}
                 onChange={function (e) {
                   handleChange('rewardedAdsEnabled', e.target.checked);
                 }}
