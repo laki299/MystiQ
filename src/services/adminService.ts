@@ -135,6 +135,44 @@ export const fetchSystemAnalytics = async (): Promise<SystemAnalytics> => {
   };
 };
 
+export interface RegisteredUserRow {
+  uid: string;
+  username: string;
+  anonymousName: string;
+  role: string;
+  gender: string;
+  hostCoins: number;
+  createdAt: number;
+  lastActiveAt: number;
+  accountStatus: string;
+}
+
+export const fetchRegisteredUsers = async function (): Promise<
+  RegisteredUserRow[]
+> {
+  const snap = await get(ref(rtdb, 'users'));
+  if (!snap.exists()) return [];
+  const users = snap.val();
+  return Object.keys(users)
+    .map(function (uid) {
+      const u = users[uid] || {};
+      return {
+        uid: uid,
+        username: u.username || '',
+        anonymousName: u.anonymousName || '',
+        role: u.role || 'user',
+        gender: u.gender || '',
+        hostCoins: Number(u.hostCoins) || 0,
+        createdAt: u.createdAt || 0,
+        lastActiveAt: u.lastActiveAt || 0,
+        accountStatus: u.accountStatus || 'active',
+      };
+    })
+    .sort(function (a, b) {
+      return (b.createdAt || 0) - (a.createdAt || 0);
+    });
+};
+
 export const fetchAllAds = async (): Promise<AdItem[]> => {
   const snapshot = await get(ref(rtdb, 'ads'));
   if (!snapshot.exists()) return [];
@@ -223,6 +261,13 @@ export const fetchAppSettings = async (): Promise<AppSettings> => {
     appDownloadUrl: 'https://mysti-q-flame.vercel.app',
     shareMessage: 'MystiQ — Anonymous chat. Download / open here:',
     maxConcurrentUsers: 85,
+    networkAdsEnabled: false,
+    firstAdAfterSec: 120,
+    adIntervalSec: 300,
+    maxAdsPerSession: 6,
+    coinsPerAdView: 1,
+    hostPoolPercent: 40,
+    minWithdrawCoins: 100,
   };
   if (!snapshot.exists()) return defaults;
   return Object.assign({}, defaults, snapshot.val());
