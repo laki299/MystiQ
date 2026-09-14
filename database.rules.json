@@ -4,6 +4,7 @@
     ".write": false,
 
     "users": {
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin' || root.child('admins').hasChild(auth.uid))",
       "$uid": {
         ".read": "auth != null",
         ".write": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin' || root.child('admins').hasChild(auth.uid))"
@@ -44,7 +45,7 @@
       "$conversationId": {
         ".read": "auth != null",
         "$messageId": {
-          ".write": "auth != null && (!newData.exists() || newData.child('senderId').val() === auth.uid || newData.child('senderUid').val() === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin' || root.child('admins').hasChild(auth.uid))"
+          ".write": "auth != null"
         }
       }
     },
@@ -53,7 +54,7 @@
       "$conversationId": {
         ".read": "auth != null",
         "$messageId": {
-          ".write": "auth != null && (!newData.exists() || newData.child('senderId').val() === auth.uid || root.child('admins').hasChild(auth.uid))"
+          ".write": "auth != null"
         }
       }
     },
@@ -91,6 +92,26 @@
 
     "ads_config": {
       ".read": true,
+      ".write": "auth != null"
+    },
+
+    "ad_networks": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+
+    "coin_pool": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+
+    "coin_logs": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+
+    "withdraw_requests": {
+      ".read": "auth != null",
       ".write": "auth != null"
     },
 
