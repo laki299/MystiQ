@@ -5,6 +5,7 @@ import { AdManager } from './AdManager';
 import { AppSettingsManager } from './AppSettingsManager';
 import { ReportManager } from './ReportManager';
 import { AuditLogViewer } from './AuditLogViewer';
+import { UsersManager } from './UsersManager';
 import { adminDeleteExpiredMessages } from '../../services/adminService';
 
 interface AdminDashboardProps {
@@ -19,6 +20,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = function (props) {
   var tabState = useState(
     'analytics' as
       | 'analytics'
+      | 'users'
       | 'ads'
       | 'settings'
       | 'reports'
@@ -38,6 +40,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = function (props) {
 
   var tabs = [
     { id: 'analytics' as const, label: 'Analytics', active: 'bg-indigo-600' },
+    { id: 'users' as const, label: 'Users', active: 'bg-cyan-600' },
     { id: 'ads' as const, label: 'Ads', active: 'bg-amber-600' },
     { id: 'settings' as const, label: 'Settings', active: 'bg-blue-600' },
     { id: 'reports' as const, label: 'Reports', active: 'bg-rose-600' },
@@ -105,6 +108,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = function (props) {
 
       <div>
         {activeTab === 'analytics' ? <AnalyticsDashboard /> : null}
+        {activeTab === 'users' ? <UsersManager /> : null}
         {activeTab === 'ads' ? (
           <AdManager adminUid={adminUid} adminRole={adminRole} />
         ) : null}
@@ -121,8 +125,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = function (props) {
               Database Cleanup
             </h2>
             <p className="text-xs text-slate-400">
-              Deletes messages and requests where expiresAt is in the past. 0
-              deleted means nothing expired yet — that is OK.
+              Deletes messages and requests where expiresAt is in the past.
             </p>
             <button
               type="button"
