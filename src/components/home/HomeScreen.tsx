@@ -177,22 +177,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = function (props) {
         </div>
       </div>
 
-      <button
-        type="button"
-        className="w-full rounded-2xl bg-gradient-to-r from-purple-600 via-violet-600 to-indigo-600 p-4 flex items-center gap-3 shadow-lg shadow-purple-900/40"
-      >
-        <div className="w-11 h-11 rounded-xl bg-white/15 flex items-center justify-center text-2xl">
-          🎁
-        </div>
-        <div className="flex-1 text-left">
-          <p className="text-sm font-bold text-white">Get 8 Hours Access</p>
-          <p className="text-[11px] text-purple-100/80">
-            Watch rewarded ads to continue using MystiQ.
-          </p>
-        </div>
-        <span className="text-white/70 text-lg">›</span>
-      </button>
-
       <ShareAppButton />
 
       <div>
