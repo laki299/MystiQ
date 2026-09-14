@@ -3,7 +3,6 @@ import { ref, update } from 'firebase/database';
 import { UserProfile } from '../../types/user.types';
 import { APP_CONFIG } from '../../config/app.config';
 import { ShareAppButton } from '../common/ShareAppButton';
-import { InHouseAdBanner } from '../common/InHouseAdBanner';
 import { useMultiPresence } from '../../hooks/useMultiPresence';
 import { rtdb } from '../../config/firebase.config';
 
@@ -119,8 +118,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = function (props) {
           </div>
         </div>
       </div>
-
-      <InHouseAdBanner />
 
       <div>
         <div className="flex items-center justify-between mb-2">
