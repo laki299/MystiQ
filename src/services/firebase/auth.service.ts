@@ -38,26 +38,71 @@ function validatePassword(password: string) {
   return null;
 }
 
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise(function (resolve, reject) {
+    var done = false;
+    var timer = setTimeout(function () {
+      if (done) return;
+      done = true;
+      reject(new Error(label + ' timed out. Check network and try again.'));
+    }, ms);
+    promise.then(
+      function (v) {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        resolve(v);
+      },
+      function (err) {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        reject(err);
+      }
+    );
+  });
+}
+
 async function loadProfile(uid: string) {
-  var snap = await get(ref(rtdb, 'users/' + uid));
+  var snap = await withTimeout(
+    get(ref(rtdb, 'users/' + uid)),
+    10000,
+    'Profile load'
+  );
   if (!snap.exists()) return null;
   var profile = snap.val() as UserProfile;
-  await update(ref(rtdb, 'users/' + uid), { lastActiveAt: Date.now() });
+  try {
+    await update(ref(rtdb, 'users/' + uid), { lastActiveAt: Date.now() });
+  } catch (e) {
+    console.warn(e);
+  }
   return Object.assign({}, profile, { lastActiveAt: Date.now() });
 }
 
 export async function restoreSession() {
-  await setPersistence(auth, browserLocalPersistence);
+  try {
+    await withTimeout(
+      setPersistence(auth, browserLocalPersistence),
+      8000,
+      'Auth persistence'
+    );
+  } catch (e) {
+    console.warn(e);
+  }
 
-  var user = await new Promise(function (resolve) {
-    var unsub = onAuthStateChanged(auth, function (u) {
-      unsub();
-      resolve(u);
-    });
-  });
+  var user = await withTimeout(
+    new Promise<User | null>(function (resolve) {
+      var unsub = onAuthStateChanged(auth, function (u) {
+        unsub();
+        resolve(u);
+      });
+    }),
+    12000,
+    'Session restore'
+  );
 
   if (!user) return null;
-  return loadProfile((user as User).uid);
+  return loadProfile(user.uid);
 }
 
 export async function registerWithUsername(
