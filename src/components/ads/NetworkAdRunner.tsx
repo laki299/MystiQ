@@ -15,8 +15,21 @@ interface NetworkAdRunnerProps {
   isAdmin: boolean;
 }
 
-function loadScriptOnce(src: string, id: string): Promise<void> {
+function ensureContainer(containerId: string, parent?: HTMLElement | null) {
+  if (!containerId) return;
+  if (document.getElementById(containerId)) return;
+  var div = document.createElement('div');
+  div.id = containerId;
+  div.style.cssText =
+    'width:100%;min-height:50px;overflow:hidden;pointer-events:auto;';
+  if (parent) parent.appendChild(div);
+  else document.body.appendChild(div);
+}
+
+/** Monetag: dataset.zone + src | Adsterra: শুধু src */
+function loadAdScript(net: AdNetworkConfig): Promise<void> {
   return new Promise(function (resolve, reject) {
+    var id = 'mystiq-ad-' + net.id;
     if (document.getElementById(id)) {
       resolve();
       return;
@@ -25,6 +38,11 @@ function loadScriptOnce(src: string, id: string): Promise<void> {
     s.id = id;
     s.async = true;
     s.setAttribute('data-cfasync', 'false');
+    if (net.zoneId) {
+      s.dataset.zone = String(net.zoneId);
+    }
+    var src = net.scriptUrl;
+    if (src.indexOf('//') === 0) src = 'https:' + src;
     s.src = src;
     s.onload = function () {
       resolve();
@@ -36,20 +54,6 @@ function loadScriptOnce(src: string, id: string): Promise<void> {
   });
 }
 
-function ensureContainer(containerId: string, parent?: HTMLElement | null) {
-  if (!containerId) return;
-  if (document.getElementById(containerId)) return;
-  var div = document.createElement('div');
-  div.id = containerId;
-  div.style.cssText =
-    'width:100%;min-height:50px;overflow:hidden;pointer-events:auto;';
-  if (parent) {
-    parent.appendChild(div);
-  } else {
-    document.body.appendChild(div);
-  }
-}
-
 async function injectNetwork(
   net: AdNetworkConfig,
   parent?: HTMLElement | null
@@ -58,9 +62,7 @@ async function injectNetwork(
   if (net.containerId) {
     ensureContainer(net.containerId, parent || null);
   }
-  var src = net.scriptUrl;
-  if (src.indexOf('//') === 0) src = 'https:' + src;
-  await loadScriptOnce(src, 'mystiq-ad-' + net.id);
+  await loadAdScript(net);
 }
 
 export const NetworkAdRunner: React.FC<NetworkAdRunnerProps> = function (
@@ -112,7 +114,6 @@ export const NetworkAdRunner: React.FC<NetworkAdRunnerProps> = function (
             }
           }
 
-          // —— ছোট ব্যানার: ওয়াটারফল, চ্যাটে সবসময় ——
           if (timing.bannerAlwaysOn && banners.length > 0) {
             var host = bannerHostRef.current;
             var filled = await waterfallInject(banners, function (net) {
@@ -124,7 +125,6 @@ export const NetworkAdRunner: React.FC<NetworkAdRunnerProps> = function (
             }
           }
 
-          // —— ফুলস্ক্রিন ওয়াটারফল ——
           async function showInterstitial() {
             if (stopped.current) return;
             if (interCount.current >= timing.maxInterstitialsPerSession) {
@@ -140,17 +140,14 @@ export const NetworkAdRunner: React.FC<NetworkAdRunnerProps> = function (
               interCount.current += 1;
               await credit();
             }
-            // কেউ ফিল না করলে কিছু দেখায় না — নীরব স্কিপ
           }
 
-          // প্রথম ঢোকা
           if (timing.interstitialOnEntry && inters.length > 0) {
             entryTimer.current = setTimeout(function () {
               showInterstitial();
             }, timing.firstInterstitialAfterSec * 1000);
           }
 
-          // প্রতি ১০ মিনিট (বা সেটিংস অনুযায়ী)
           if (inters.length > 0 && timing.interstitialIntervalSec > 0) {
             loopTimer.current = setInterval(function () {
               showInterstitial();
@@ -182,7 +179,6 @@ export const NetworkAdRunner: React.FC<NetworkAdRunnerProps> = function (
     [uid, isAdmin]
   );
 
-  // Admin বা অ্যাড অফ → UI নেই
   if (isAdmin || !uid) return null;
 
   return (
@@ -192,7 +188,6 @@ export const NetworkAdRunner: React.FC<NetworkAdRunnerProps> = function (
       style={{ maxWidth: 480, margin: '0 auto' }}
       aria-hidden={!bannerReady}
     >
-      {/* কোম্পানি কন্টেইনার এখানে ইনজেক্ট হবে; খালি থাকলে জায়গা নেয় না */}
       <div className="px-2" />
     </div>
   );
