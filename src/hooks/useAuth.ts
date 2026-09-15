@@ -17,10 +17,20 @@ export const useAuth = () => {
     (async () => {
       try {
         const existing = await restoreSession();
-        if (!cancelled) setProfile(existing);
+        if (!cancelled) {
+          setProfile(existing);
+          setError(null);
+        }
       } catch (err: any) {
         console.error(err);
-        if (!cancelled) setError(err?.message || 'Session error');
+        if (!cancelled) {
+          setProfile(null);
+          setError(
+            err && err.message
+              ? String(err.message)
+              : 'Could not restore session'
+          );
+        }
       } finally {
         if (!cancelled) setIsLoading(false);
       }
