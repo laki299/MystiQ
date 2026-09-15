@@ -52,6 +52,8 @@ export interface AdNetworkConfig {
   id: string;
   name: string;
   scriptUrl: string;
+  /** Monetag zone id — dataset.zone */
+  zoneId?: string;
   containerId?: string;
   /**
    * banner      = ছোট ব্যানার (চ্যাটে সবসময়)
