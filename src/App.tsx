@@ -26,6 +26,7 @@ export const App: React.FC = function () {
   const profile = authApi.profile;
   const setProfile = authApi.setProfile;
   const isLoading = authApi.isLoading;
+  const authError = authApi.error;
   const login = authApi.login;
   const register = authApi.register;
   const logout = authApi.logout;
@@ -45,28 +46,30 @@ export const App: React.FC = function () {
   const executeSweep = sweep.executeSweep;
   const isDeleting = sweep.isDeleting;
 
-  const checkCapacity = useCallback(async function () {
-    if (!profile) return;
-    if (checkIsAdmin(profile.role)) {
-      setServerFull(false);
-      setCapacityChecked(true);
-      return;
-    }
-    try {
-      var settings = await fetchAppSettings();
-      var max = settings.maxConcurrentUsers || 85;
-      setMaxUsers(max);
-      var online = await countOnlineUsers();
-      setOnlineCount(online);
-      // Allow if already in presence (online includes self soon) — block only if at/over limit
-      setServerFull(online >= max);
-    } catch (err) {
-      console.error(err);
-      setServerFull(false);
-    } finally {
-      setCapacityChecked(true);
-    }
-  }, [profile]);
+  const checkCapacity = useCallback(
+    async function () {
+      if (!profile) return;
+      if (checkIsAdmin(profile.role)) {
+        setServerFull(false);
+        setCapacityChecked(true);
+        return;
+      }
+      try {
+        var settings = await fetchAppSettings();
+        var max = settings.maxConcurrentUsers || 85;
+        setMaxUsers(max);
+        var online = await countOnlineUsers();
+        setOnlineCount(online);
+        setServerFull(online >= max);
+      } catch (err) {
+        console.error(err);
+        setServerFull(false);
+      } finally {
+        setCapacityChecked(true);
+      }
+    },
+    [profile]
+  );
 
   useEffect(
     function () {
@@ -96,9 +99,15 @@ export const App: React.FC = function () {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4">
-        <div className="text-center space-y-3">
+        <div className="text-center space-y-3 max-w-xs">
           <div className="w-10 h-10 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-sm text-slate-400">Loading MystiQ...</p>
+          <p className="text-sm font-bold text-purple-300 tracking-wide">
+            MYSTIQ
+          </p>
+          <p className="text-xs text-slate-400">Connecting…</p>
+          {authError ? (
+            <p className="text-[11px] text-amber-400 mt-2">{authError}</p>
+          ) : null}
         </div>
       </div>
     );
@@ -106,14 +115,23 @@ export const App: React.FC = function () {
 
   if (!profile) {
     return (
-      <AuthScreen
-        onLogin={async function (u, p) {
-          await login(u, p);
-        }}
-        onRegister={async function (u, p, d) {
-          await register(u, p, d);
-        }}
-      />
+      <div className="min-h-screen bg-slate-950">
+        {authError ? (
+          <div className="max-w-md mx-auto px-4 pt-4">
+            <div className="rounded-xl border border-amber-500/40 bg-amber-950/30 px-3 py-2 text-[11px] text-amber-200">
+              {authError}
+            </div>
+          </div>
+        ) : null}
+        <AuthScreen
+          onLogin={async function (u, p) {
+            await login(u, p);
+          }}
+          onRegister={async function (u, p, d) {
+            await register(u, p, d);
+          }}
+        />
+      </div>
     );
   }
 
@@ -137,6 +155,7 @@ export const App: React.FC = function () {
         <div className="p-4 max-w-7xl mx-auto flex justify-between items-center bg-slate-900/80 border-b border-slate-800">
           <span className="text-sm font-bold text-indigo-400">MystiQ Admin</span>
           <button
+            type="button"
             onClick={function () {
               setIsAdminView(false);
             }}
