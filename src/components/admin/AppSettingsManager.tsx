@@ -20,8 +20,8 @@ const DEFAULTS: AppSettings = {
   rewardDurationHours: 8,
   rewardedAdsEnabled: false,
   appDownloadUrl: '',
-  shareMessage: 'Join MystiQ',
-  maxConcurrentUsers: 89,
+  shareMessage: 'MystiQ — Anonymous chat',
+  maxConcurrentUsers: 80,
   networkAdsEnabled: false,
   bannerAlwaysOn: true,
   interstitialOnEntry: true,
@@ -58,7 +58,7 @@ export const AppSettingsManager: React.FC<AppSettingsManagerProps> = function (
     })();
   }, []);
 
-  function num(key: keyof AppSettings, value: string) {
+  function setNum(key: keyof AppSettings, value: string) {
     var n = parseFloat(value);
     if (isNaN(n)) return;
     setSettings(function (prev) {
@@ -66,13 +66,13 @@ export const AppSettingsManager: React.FC<AppSettingsManagerProps> = function (
     });
   }
 
-  function toggle(key: keyof AppSettings) {
+  function setBool(key: keyof AppSettings, value: boolean) {
     setSettings(function (prev) {
-      return Object.assign({}, prev, { [key]: !(prev as any)[key] });
+      return Object.assign({}, prev, { [key]: value });
     });
   }
 
-  function text(key: keyof AppSettings, value: string) {
+  function setText(key: keyof AppSettings, value: string) {
     setSettings(function (prev) {
       return Object.assign({}, prev, { [key]: value });
     });
@@ -82,10 +82,11 @@ export const AppSettingsManager: React.FC<AppSettingsManagerProps> = function (
     setSaving(true);
     setMsg('');
     try {
-      await updateAppSettings(adminUid, settings);
+      var payload = Object.assign({}, DEFAULTS, settings);
+      await updateAppSettings(adminUid, payload);
       setMsg('Settings saved');
     } catch (e: any) {
-      setMsg(e && e.message ? e.message : 'Save failed');
+      setMsg(e && e.message ? String(e.message) : 'Save failed');
     } finally {
       setSaving(false);
     }
@@ -101,71 +102,74 @@ export const AppSettingsManager: React.FC<AppSettingsManagerProps> = function (
     <div className="p-4 space-y-6 text-white bg-slate-900 rounded-xl border border-slate-800">
       <h3 className="text-sm font-bold text-indigo-300">App Configuration</h3>
 
-      <section className="space-y-2">
-        <p className="text-xs font-semibold text-purple-300 uppercase">
-          Network Ads (Master)
+      <section className="space-y-3">
+        <p className="text-xs font-semibold text-purple-300 uppercase tracking-wide">
+          Network Ads
         </p>
-        <label className="flex items-center gap-2 text-sm">
+        <label className="flex items-center gap-2 text-sm text-slate-200">
           <input
             type="checkbox"
+            className="rounded"
             checked={!!settings.networkAdsEnabled}
-            onChange={function () {
-              toggle('networkAdsEnabled');
+            onChange={function (e) {
+              setBool('networkAdsEnabled', e.target.checked);
             }}
           />
-          Enable network ads (ON করলেই waterfall চালু)
+          Enable network ads
         </label>
-        <label className="flex items-center gap-2 text-sm">
+        <label className="flex items-center gap-2 text-sm text-slate-200">
           <input
             type="checkbox"
+            className="rounded"
             checked={settings.bannerAlwaysOn !== false}
-            onChange={function () {
-              toggle('bannerAlwaysOn');
+            onChange={function (e) {
+              setBool('bannerAlwaysOn', e.target.checked);
             }}
           />
           চ্যাটে ছোট ব্যানার সবসময়
         </label>
-        <label className="flex items-center gap-2 text-sm">
+        <label className="flex items-center gap-2 text-sm text-slate-200">
           <input
             type="checkbox"
+            className="rounded"
             checked={settings.interstitialOnEntry !== false}
-            onChange={function () {
-              toggle('interstitialOnEntry');
+            onChange={function (e) {
+              setBool('interstitialOnEntry', e.target.checked);
             }}
           />
           প্রথম ঢোকায় ফুলস্ক্রিন
         </label>
         <div className="grid grid-cols-2 gap-2 text-xs">
-          <label>
+          <label className="text-slate-400">
             First fullscreen after (sec)
             <input
               type="number"
-              className="w-full mt-1 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5"
+              className="w-full mt-1 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-slate-100"
               value={settings.firstInterstitialAfterSec}
               onChange={function (e) {
-                num('firstInterstitialAfterSec', e.target.value);
+                setNum('firstInterstitialAfterSec', e.target.value);
               }}
             />
           </label>
-          <label>
+          <label className="text-slate-400">
             Fullscreen every (sec) — 600 = 10 min
             <input
               type="number"
-              className="w-full mt-1 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5"
+              className="w-full mt-1 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-slate-100"
               value={settings.interstitialIntervalSec}
               onChange={function (e) {
-                num('interstitialIntervalSec', e.target.value);
+                setNum('interstitialIntervalSec', e.target.value);
               }}
             />
           </label>
-          <label>
+          <label className="text-slate-400 col-span-2">
             Max fullscreen / session
             <input
               type="number"
-              className="w-full mt-1 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5"
+              className="w-full mt-1 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-slate-100"
               value={settings.maxInterstitialsPerSession}
               onChange={function (e) {
-                num('maxInterstitialsPerSession', e.target.value);
+                setNum('maxInterstitialsPerSession', e.target.value);
               }}
             />
           </label>
@@ -173,77 +177,77 @@ export const AppSettingsManager: React.FC<AppSettingsManagerProps> = function (
       </section>
 
       <section className="space-y-2">
-        <p className="text-xs font-semibold text-purple-300 uppercase">
+        <p className="text-xs font-semibold text-purple-300 uppercase tracking-wide">
           Download / Share
         </p>
-        <label className="text-xs block">
+        <label className="text-xs text-slate-400 block">
           App download URL
           <input
-            className="w-full mt-1 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-sm"
+            className="w-full mt-1 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-sm text-slate-100"
             value={settings.appDownloadUrl || ''}
             onChange={function (e) {
-              text('appDownloadUrl', e.target.value);
+              setText('appDownloadUrl', e.target.value);
             }}
           />
         </label>
-        <label className="text-xs block">
+        <label className="text-xs text-slate-400 block">
           Share message
           <input
-            className="w-full mt-1 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-sm"
+            className="w-full mt-1 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-sm text-slate-100"
             value={settings.shareMessage || ''}
             onChange={function (e) {
-              text('shareMessage', e.target.value);
+              setText('shareMessage', e.target.value);
             }}
           />
         </label>
-        <label className="text-xs block">
+        <label className="text-xs text-slate-400 block">
           Max concurrent users
           <input
             type="number"
-            className="w-full mt-1 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5"
+            className="w-full mt-1 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-slate-100"
             value={settings.maxConcurrentUsers}
             onChange={function (e) {
-              num('maxConcurrentUsers', e.target.value);
+              setNum('maxConcurrentUsers', e.target.value);
             }}
           />
         </label>
       </section>
 
       <section className="space-y-2">
-        <p className="text-xs font-semibold text-purple-300 uppercase">
+        <p className="text-xs font-semibold text-purple-300 uppercase tracking-wide">
           Host coins
         </p>
         <div className="grid grid-cols-3 gap-2 text-xs">
-          <label>
+          <label className="text-slate-400">
             Coins / ad view
             <input
               type="number"
-              className="w-full mt-1 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5"
+              className="w-full mt-1 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-slate-100"
               value={settings.coinsPerAdView}
               onChange={function (e) {
-                num('coinsPerAdView', e.target.value);
+                setNum('coinsPerAdView', e.target.value);
               }}
             />
           </label>
-          <label>
+          <label className="text-slate-400">
             Host pool %
             <input
               type="number"
-              className="w-full mt-1 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5"
+              className="w-full mt-1 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-slate-100"
               value={settings.hostPoolPercent}
               onChange={function (e) {
-                num('hostPoolPercent', e.target.value);
+                setNum('hostPoolPercent', e.target.value);
               }}
             />
           </label>
-          <label>
+          <label className="text-slate-400">
             Min withdraw
             <input
               type="number"
-              className="w-full mt-1 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5"
+              className="w-full mt-1 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-slate-100"
               value={settings.minWithdrawCoins}
               onChange={function (e) {
-                num('minWithdrawCoins', e.target.value);
+                setNum('minWithdrawCoins', e.target.value);
               }}
             />
           </label>
@@ -251,52 +255,52 @@ export const AppSettingsManager: React.FC<AppSettingsManagerProps> = function (
       </section>
 
       <section className="space-y-2">
-        <p className="text-xs font-semibold text-purple-300 uppercase">
+        <p className="text-xs font-semibold text-purple-300 uppercase tracking-wide">
           Expirations & limits
         </p>
         <div className="grid grid-cols-2 gap-2 text-xs">
-          <label>
+          <label className="text-slate-400">
             Text expiry (min)
             <input
               type="number"
               step="0.5"
-              className="w-full mt-1 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5"
+              className="w-full mt-1 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-slate-100"
               value={settings.textExpiryMinutes}
               onChange={function (e) {
-                num('textExpiryMinutes', e.target.value);
+                setNum('textExpiryMinutes', e.target.value);
               }}
             />
           </label>
-          <label>
+          <label className="text-slate-400">
             Presence timeout (sec)
             <input
               type="number"
-              className="w-full mt-1 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5"
+              className="w-full mt-1 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-slate-100"
               value={settings.presenceTimeoutSec}
               onChange={function (e) {
-                num('presenceTimeoutSec', e.target.value);
+                setNum('presenceTimeoutSec', e.target.value);
               }}
             />
           </label>
-          <label>
+          <label className="text-slate-400">
             Voice daily limit
             <input
               type="number"
-              className="w-full mt-1 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5"
+              className="w-full mt-1 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-slate-100"
               value={settings.voiceDailyLimit}
               onChange={function (e) {
-                num('voiceDailyLimit', e.target.value);
+                setNum('voiceDailyLimit', e.target.value);
               }}
             />
           </label>
-          <label>
+          <label className="text-slate-400">
             Max voice (sec)
             <input
               type="number"
-              className="w-full mt-1 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5"
+              className="w-full mt-1 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-slate-100"
               value={settings.maxVoiceDurationSec}
               onChange={function (e) {
-                num('maxVoiceDurationSec', e.target.value);
+                setNum('maxVoiceDurationSec', e.target.value);
               }}
             />
           </label>
@@ -304,7 +308,15 @@ export const AppSettingsManager: React.FC<AppSettingsManagerProps> = function (
       </section>
 
       {msg ? (
-        <p className="text-xs text-emerald-400">{msg}</p>
+        <p
+          className={
+            msg.indexOf('fail') >= 0 || msg.indexOf('Error') >= 0
+              ? 'text-xs text-rose-400'
+              : 'text-xs text-emerald-400'
+          }
+        >
+          {msg}
+        </p>
       ) : null}
 
       <button
