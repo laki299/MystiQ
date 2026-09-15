@@ -12,6 +12,7 @@ function mapRow(k: string, row: any): AdNetworkConfig {
     id: k,
     name: row.name || k,
     scriptUrl: row.scriptUrl || '',
+    zoneId: row.zoneId ? String(row.zoneId) : '',
     containerId: row.containerId || '',
     type: t,
     enabled: !!row.enabled,
@@ -57,6 +58,7 @@ export const upsertAdNetwork = async function (
   var payload = {
     name: data.name,
     scriptUrl: data.scriptUrl,
+    zoneId: data.zoneId || '',
     containerId: data.containerId || '',
     type: data.type || 'script',
     enabled: !!data.enabled,
