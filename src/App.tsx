@@ -10,6 +10,7 @@ import { ChatsScreen } from './components/chats/ChatsScreen';
 import { ProfileScreen } from './components/profile/ProfileScreen';
 import { AdminProtectedRoute } from './components/admin/AdminProtectedRoute';
 import { AuthScreen } from './components/auth/AuthScreen';
+import { NetworkAdRunner } from './components/ads/NetworkAdRunner';
 import { subscribeToIncomingRequests } from './services/firebase/request.service';
 import {
   fetchAppSettings,
@@ -213,6 +214,8 @@ export const App: React.FC = function () {
             onLogout={logout}
           />
         ) : null}
+
+        <NetworkAdRunner uid={profile.uid} isAdmin={isAdmin} />
 
         <QuickSweepBanner
           count={count}
