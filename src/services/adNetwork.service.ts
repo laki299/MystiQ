@@ -79,7 +79,6 @@ export const shouldShowNetworkAds = async function (): Promise<boolean> {
   return nets.length > 0;
 };
 
-/** ব্যানার তালিকা — order অনুযায়ী (Monetag আগে…) */
 export const getBannerNetworks = function (
   networks: AdNetworkConfig[]
 ): AdNetworkConfig[] {
@@ -92,7 +91,6 @@ export const getBannerNetworks = function (
     });
 };
 
-/** ফুলস্ক্রিন / স্ক্রিপ্ট ওয়াটারফল লিস্ট */
 export const getInterstitialNetworks = function (
   networks: AdNetworkConfig[]
 ): AdNetworkConfig[] {
@@ -105,11 +103,6 @@ export const getInterstitialNetworks = function (
     });
 };
 
-/**
- * WATERFALL: order 1 → 2 → 3…
- * স্ক্রিপ্ট লোড সফল = ফিল ধরা; ফেল = পরের কোম্পানি
- * কেউ সফল না হলে null (কিছু দেখাবে না)
- */
 export async function waterfallInject(
   list: AdNetworkConfig[],
   injectFn: (net: AdNetworkConfig) => Promise<void>
