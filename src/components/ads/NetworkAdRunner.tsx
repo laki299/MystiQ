@@ -1,8 +1,10 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   fetchAdNetworks,
   getAdTiming,
-  pickNetwork,
+  getBannerNetworks,
+  getInterstitialNetworks,
+  waterfallInject,
 } from '../../services/adNetwork.service';
 import { fetchAppSettings } from '../../services/adminService';
 import { recordAdViewCoins } from '../../services/coin.service';
@@ -34,26 +36,30 @@ function loadScriptOnce(src: string, id: string): Promise<void> {
   });
 }
 
-function ensureContainer(containerId: string) {
+function ensureContainer(containerId: string, parent?: HTMLElement | null) {
   if (!containerId) return;
   if (document.getElementById(containerId)) return;
   var div = document.createElement('div');
   div.id = containerId;
   div.style.cssText =
-    'width:100%;min-height:1px;overflow:hidden;pointer-events:auto;';
-  document.body.appendChild(div);
+    'width:100%;min-height:50px;overflow:hidden;pointer-events:auto;';
+  if (parent) {
+    parent.appendChild(div);
+  } else {
+    document.body.appendChild(div);
+  }
 }
 
-async function injectNetwork(net: AdNetworkConfig): Promise<void> {
-  if (!net.scriptUrl) return;
-
+async function injectNetwork(
+  net: AdNetworkConfig,
+  parent?: HTMLElement | null
+): Promise<void> {
+  if (!net.scriptUrl) throw new Error('No scriptUrl');
   if (net.containerId) {
-    ensureContainer(net.containerId);
+    ensureContainer(net.containerId, parent || null);
   }
-
   var src = net.scriptUrl;
   if (src.indexOf('//') === 0) src = 'https:' + src;
-
   await loadScriptOnce(src, 'mystiq-ad-' + net.id);
 }
 
@@ -62,14 +68,20 @@ export const NetworkAdRunner: React.FC<NetworkAdRunnerProps> = function (
 ) {
   var uid = props.uid;
   var isAdmin = props.isAdmin;
-  var shownRef = useRef(0);
-  var timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  var intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  var [bannerReady, setBannerReady] = useState(false);
+  var interCount = useRef(0);
+  var entryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  var loopTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   var stopped = useRef(false);
+  var bannerHostRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(
     function () {
       stopped.current = false;
+      interCount.current = 0;
+      setBannerReady(false);
+
       if (isAdmin || !uid) return;
 
       async function boot() {
@@ -81,57 +93,86 @@ export const NetworkAdRunner: React.FC<NetworkAdRunnerProps> = function (
           if (!networks.length) return;
 
           var timing = getAdTiming(settings);
+          var banners = getBannerNetworks(networks);
+          var inters = getInterstitialNetworks(networks);
 
-          function clearAll() {
-            if (timerRef.current) clearTimeout(timerRef.current);
-            if (intervalRef.current) clearInterval(intervalRef.current);
-            timerRef.current = null;
-            intervalRef.current = null;
+          function clearTimers() {
+            if (entryTimer.current) clearTimeout(entryTimer.current);
+            if (loopTimer.current) clearInterval(loopTimer.current);
+            entryTimer.current = null;
+            loopTimer.current = null;
           }
 
-          async function showOne() {
+          async function credit() {
+            if (!uid) return;
+            try {
+              await recordAdViewCoins(uid);
+            } catch (e) {
+              console.warn('[coins]', e);
+            }
+          }
+
+          // —— ছোট ব্যানার: ওয়াটারফল, চ্যাটে সবসময় ——
+          if (timing.bannerAlwaysOn && banners.length > 0) {
+            var host = bannerHostRef.current;
+            var filled = await waterfallInject(banners, function (net) {
+              return injectNetwork(net, host);
+            });
+            if (filled) {
+              setBannerReady(true);
+              await credit();
+            }
+          }
+
+          // —— ফুলস্ক্রিন ওয়াটারফল ——
+          async function showInterstitial() {
             if (stopped.current) return;
-            if (shownRef.current >= timing.maxAdsPerSession) {
-              clearAll();
+            if (interCount.current >= timing.maxInterstitialsPerSession) {
+              clearTimers();
               return;
             }
-            var net = pickNetwork(networks);
-            if (!net) return;
-            try {
-              await injectNetwork(net);
-              shownRef.current += 1;
-              if (uid) {
-                try {
-                  await recordAdViewCoins(uid);
-                } catch (ce) {
-                  console.warn('[coins]', ce);
-                }
-              }
-            } catch (e) {
-              console.warn('[NetworkAd]', e);
+            if (!inters.length) return;
+
+            var won = await waterfallInject(inters, function (net) {
+              return injectNetwork(net, null);
+            });
+            if (won) {
+              interCount.current += 1;
+              await credit();
             }
+            // কেউ ফিল না করলে কিছু দেখায় না — নীরব স্কিপ
           }
 
-          timerRef.current = setTimeout(function () {
-            showOne();
-            intervalRef.current = setInterval(
-              showOne,
-              timing.adIntervalSec * 1000
-            );
-          }, timing.firstAdAfterSec * 1000);
+          // প্রথম ঢোকা
+          if (timing.interstitialOnEntry && inters.length > 0) {
+            entryTimer.current = setTimeout(function () {
+              showInterstitial();
+            }, timing.firstInterstitialAfterSec * 1000);
+          }
 
-          return clearAll;
+          // প্রতি ১০ মিনিট (বা সেটিংস অনুযায়ী)
+          if (inters.length > 0 && timing.interstitialIntervalSec > 0) {
+            loopTimer.current = setInterval(function () {
+              showInterstitial();
+            }, timing.interstitialIntervalSec * 1000);
+          }
+
+          return clearTimers;
         } catch (e) {
           console.warn('[NetworkAd boot]', e);
         }
       }
 
       var cleanupPromise = boot();
+
       return function () {
         stopped.current = true;
-        if (timerRef.current) clearTimeout(timerRef.current);
-        if (intervalRef.current) clearInterval(intervalRef.current);
-        if (cleanupPromise && typeof (cleanupPromise as any).then === 'function') {
+        if (entryTimer.current) clearTimeout(entryTimer.current);
+        if (loopTimer.current) clearInterval(loopTimer.current);
+        if (
+          cleanupPromise &&
+          typeof (cleanupPromise as any).then === 'function'
+        ) {
           (cleanupPromise as Promise<any>).then(function (fn) {
             if (typeof fn === 'function') fn();
           });
@@ -141,5 +182,18 @@ export const NetworkAdRunner: React.FC<NetworkAdRunnerProps> = function (
     [uid, isAdmin]
   );
 
-  return null;
+  // Admin বা অ্যাড অফ → UI নেই
+  if (isAdmin || !uid) return null;
+
+  return (
+    <div
+      ref={bannerHostRef}
+      className="fixed bottom-16 left-0 right-0 z-40 pointer-events-auto"
+      style={{ maxWidth: 480, margin: '0 auto' }}
+      aria-hidden={!bannerReady}
+    >
+      {/* কোম্পানি কন্টেইনার এখানে ইনজেক্ট হবে; খালি থাকলে জায়গা নেয় না */}
+      <div className="px-2" />
+    </div>
+  );
 };
