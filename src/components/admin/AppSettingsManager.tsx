@@ -1,98 +1,91 @@
 import React, { useEffect, useState } from 'react';
-import { fetchAppSettings, updateAppSettings } from '../../services/adminService';
-import { AppSettings, AdminRole } from '../../types/admin';
+import { AppSettings } from '../../types/admin';
+import {
+  fetchAppSettings,
+  updateAppSettings,
+} from '../../services/adminService';
 
 interface AppSettingsManagerProps {
   adminUid: string;
-  adminRole: AdminRole;
+  adminRole: string;
 }
+
+const DEFAULTS: AppSettings = {
+  textExpiryMinutes: 2.5,
+  voiceDailyLimit: 25,
+  maxVoiceDurationSec: 60,
+  presenceTimeoutSec: 45,
+  requestExpirySec: 300,
+  inactiveThresholdDays: 30,
+  rewardDurationHours: 8,
+  rewardedAdsEnabled: false,
+  appDownloadUrl: '',
+  shareMessage: 'Join MystiQ',
+  maxConcurrentUsers: 89,
+  networkAdsEnabled: false,
+  bannerAlwaysOn: true,
+  interstitialOnEntry: true,
+  firstInterstitialAfterSec: 8,
+  interstitialIntervalSec: 600,
+  maxInterstitialsPerSession: 12,
+  firstAdAfterSec: 120,
+  adIntervalSec: 300,
+  maxAdsPerSession: 6,
+  coinsPerAdView: 1,
+  hostPoolPercent: 40,
+  minWithdrawCoins: 100,
+};
 
 export const AppSettingsManager: React.FC<AppSettingsManagerProps> = function (
   props
 ) {
   var adminUid = props.adminUid;
-  var adminRole = props.adminRole;
-
-  var settingsState = useState({
-    textExpiryMinutes: 2.5,
-    voiceDailyLimit: 25,
-    maxVoiceDurationSec: 60,
-    presenceTimeoutSec: 45,
-    requestExpirySec: 300,
-    inactiveThresholdDays: 30,
-    rewardDurationHours: 8,
-    rewardedAdsEnabled: false,
-    appDownloadUrl: 'https://mysti-q-flame.vercel.app',
-    shareMessage: 'MystiQ — Anonymous chat. Download / open here:',
-    maxConcurrentUsers: 85,
-    networkAdsEnabled: false,
-    firstAdAfterSec: 120,
-    adIntervalSec: 300,
-    maxAdsPerSession: 6,
-    coinsPerAdView: 1,
-    hostPoolPercent: 40,
-    minWithdrawCoins: 100,
-  } as AppSettings);
-  var settings = settingsState[0];
-  var setSettings = settingsState[1];
-
-  var loadingState = useState(true);
-  var loading = loadingState[0];
-  var setLoading = loadingState[1];
-
-  var savingState = useState(false);
-  var saving = savingState[0];
-  var setSaving = savingState[1];
-
-  var successState = useState('');
-  var successMsg = successState[0];
-  var setSuccessMsg = successState[1];
-
-  var errorState = useState('');
-  var errorMsg = errorState[0];
-  var setErrorMsg = errorState[1];
+  var [settings, setSettings] = useState<AppSettings>(DEFAULTS);
+  var [loading, setLoading] = useState(true);
+  var [saving, setSaving] = useState(false);
+  var [msg, setMsg] = useState('');
 
   useEffect(function () {
-    async function loadSettings() {
-      setLoading(true);
+    (async function () {
       try {
-        var data = await fetchAppSettings();
-        setSettings(data);
-      } catch (err) {
-        console.error(err);
-        setErrorMsg('Failed to load settings');
+        var s = await fetchAppSettings();
+        setSettings(Object.assign({}, DEFAULTS, s));
+      } catch (e) {
+        console.error(e);
       } finally {
         setLoading(false);
       }
-    }
-    loadSettings();
+    })();
   }, []);
 
-  function handleChange(field: keyof AppSettings, value: any) {
+  function num(key: keyof AppSettings, value: string) {
+    var n = parseFloat(value);
+    if (isNaN(n)) return;
     setSettings(function (prev) {
-      var next = Object.assign({}, prev);
-      next[field] = value as never;
-      return next;
+      return Object.assign({}, prev, { [key]: n });
     });
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  function toggle(key: keyof AppSettings) {
+    setSettings(function (prev) {
+      return Object.assign({}, prev, { [key]: !(prev as any)[key] });
+    });
+  }
+
+  function text(key: keyof AppSettings, value: string) {
+    setSettings(function (prev) {
+      return Object.assign({}, prev, { [key]: value });
+    });
+  }
+
+  async function save() {
     setSaving(true);
-    setSuccessMsg('');
-    setErrorMsg('');
+    setMsg('');
     try {
-      await updateAppSettings(adminUid, adminRole, settings);
-      setSuccessMsg('Settings saved successfully.');
-      setTimeout(function () {
-        setSuccessMsg('');
-      }, 3000);
-    } catch (err: any) {
-      console.error(err);
-      setErrorMsg(
-        'Save failed: ' +
-          (err && err.message ? err.message : 'permission denied or network')
-      );
+      await updateAppSettings(adminUid, settings);
+      setMsg('Settings saved');
+    } catch (e: any) {
+      setMsg(e && e.message ? e.message : 'Save failed');
     } finally {
       setSaving(false);
     }
@@ -100,350 +93,228 @@ export const AppSettingsManager: React.FC<AppSettingsManagerProps> = function (
 
   if (loading) {
     return (
-      <div className="text-center py-6 text-slate-400 text-sm">
-        Loading System Settings...
-      </div>
+      <div className="p-4 text-slate-400 text-sm">Loading settings…</div>
     );
   }
 
   return (
-    <div className="p-4 space-y-6 text-white bg-slate-900 rounded-xl border border-slate-800 shadow-xl">
-      <div className="border-b border-slate-800 pb-4">
-        <h2 className="text-xl font-bold text-blue-400">App Configuration</h2>
-        <p className="text-xs text-slate-400">
-          Limits, network ads, coins, share link
+    <div className="p-4 space-y-6 text-white bg-slate-900 rounded-xl border border-slate-800">
+      <h3 className="text-sm font-bold text-indigo-300">App Configuration</h3>
+
+      <section className="space-y-2">
+        <p className="text-xs font-semibold text-purple-300 uppercase">
+          Network Ads (Master)
         </p>
-      </div>
-
-      {successMsg ? (
-        <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold rounded-lg">
-          {successMsg}
-        </div>
-      ) : null}
-
-      {errorMsg ? (
-        <div className="p-3 bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-semibold rounded-lg">
-          {errorMsg}
-        </div>
-      ) : null}
-
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="p-4 bg-slate-800/60 rounded-lg border border-purple-500/30 space-y-3">
-          <h3 className="text-xs font-bold text-purple-300 uppercase">
-            App Share & Download Link
-          </h3>
-          <div>
-            <label className="block text-xs text-slate-400 mb-1">
-              Download URL
-            </label>
-            <input
-              type="url"
-              value={settings.appDownloadUrl || ''}
-              onChange={function (e) {
-                handleChange('appDownloadUrl', e.target.value);
-              }}
-              className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-xs text-slate-400 mb-1">
-              Share message
-            </label>
-            <textarea
-              rows={2}
-              value={settings.shareMessage || ''}
-              onChange={function (e) {
-                handleChange('shareMessage', e.target.value);
-              }}
-              className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm resize-none"
-            />
-          </div>
-        </div>
-
-        <div className="p-4 bg-amber-950/30 rounded-lg border border-amber-500/30 space-y-3">
-          <h3 className="text-xs font-bold text-amber-300 uppercase">
-            Concurrent Users
-          </h3>
-          <div>
-            <label className="block text-xs text-slate-400 mb-1">
-              Max Concurrent Users
-            </label>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={!!settings.networkAdsEnabled}
+            onChange={function () {
+              toggle('networkAdsEnabled');
+            }}
+          />
+          Enable network ads (ON করলেই waterfall চালু)
+        </label>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={settings.bannerAlwaysOn !== false}
+            onChange={function () {
+              toggle('bannerAlwaysOn');
+            }}
+          />
+          চ্যাটে ছোট ব্যানার সবসময়
+        </label>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={settings.interstitialOnEntry !== false}
+            onChange={function () {
+              toggle('interstitialOnEntry');
+            }}
+          />
+          প্রথম ঢোকায় ফুলস্ক্রিন
+        </label>
+        <div className="grid grid-cols-2 gap-2 text-xs">
+          <label>
+            First fullscreen after (sec)
             <input
               type="number"
-              min={10}
-              max={200}
-              value={settings.maxConcurrentUsers || 85}
+              className="w-full mt-1 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5"
+              value={settings.firstInterstitialAfterSec}
               onChange={function (e) {
-                handleChange('maxConcurrentUsers', Number(e.target.value));
+                num('firstInterstitialAfterSec', e.target.value);
               }}
-              className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm"
-              required
             />
-          </div>
-        </div>
-
-        <div className="p-4 bg-rose-950/20 rounded-lg border border-rose-500/30 space-y-3">
-          <h3 className="text-xs font-bold text-rose-300 uppercase">
-            Network Ads (off until company scripts ready)
-          </h3>
-          <p className="text-[11px] text-slate-400">
-            Keep OFF so the app runs without ads. Turn ON only after ad_networks
-            are configured. Admins never see ads.
-          </p>
-          <div className="flex items-center space-x-3">
+          </label>
+          <label>
+            Fullscreen every (sec) — 600 = 10 min
             <input
-              type="checkbox"
-              id="networkAdsEnabled"
-              checked={!!settings.networkAdsEnabled}
+              type="number"
+              className="w-full mt-1 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5"
+              value={settings.interstitialIntervalSec}
               onChange={function (e) {
-                handleChange('networkAdsEnabled', e.target.checked);
+                num('interstitialIntervalSec', e.target.value);
               }}
-              className="w-4 h-4 accent-rose-600 rounded"
             />
-            <label
-              htmlFor="networkAdsEnabled"
-              className="text-xs font-medium text-slate-300"
-            >
-              Enable network ads
-            </label>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div>
-              <label className="block text-xs text-slate-400 mb-1">
-                First ad after (sec)
-              </label>
-              <input
-                type="number"
-                value={settings.firstAdAfterSec || 120}
-                onChange={function (e) {
-                  handleChange('firstAdAfterSec', Number(e.target.value));
-                }}
-                className="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-slate-400 mb-1">
-                Interval (sec)
-              </label>
-              <input
-                type="number"
-                value={settings.adIntervalSec || 300}
-                onChange={function (e) {
-                  handleChange('adIntervalSec', Number(e.target.value));
-                }}
-                className="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-slate-400 mb-1">
-                Max ads / session
-              </label>
-              <input
-                type="number"
-                value={settings.maxAdsPerSession || 6}
-                onChange={function (e) {
-                  handleChange('maxAdsPerSession', Number(e.target.value));
-                }}
-                className="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded text-sm"
-              />
-            </div>
-          </div>
+          </label>
+          <label>
+            Max fullscreen / session
+            <input
+              type="number"
+              className="w-full mt-1 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5"
+              value={settings.maxInterstitialsPerSession}
+              onChange={function (e) {
+                num('maxInterstitialsPerSession', e.target.value);
+              }}
+            />
+          </label>
         </div>
+      </section>
 
-        <div className="p-4 bg-emerald-950/20 rounded-lg border border-emerald-500/30 space-y-3">
-          <h3 className="text-xs font-bold text-emerald-300 uppercase">
-            Host Coins
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div>
-              <label className="block text-xs text-slate-400 mb-1">
-                Coins per ad view
-              </label>
-              <input
-                type="number"
-                value={settings.coinsPerAdView || 1}
-                onChange={function (e) {
-                  handleChange('coinsPerAdView', Number(e.target.value));
-                }}
-                className="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-slate-400 mb-1">
-                Host pool %
-              </label>
-              <input
-                type="number"
-                value={settings.hostPoolPercent || 40}
-                onChange={function (e) {
-                  handleChange('hostPoolPercent', Number(e.target.value));
-                }}
-                className="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-slate-400 mb-1">
-                Min withdraw coins
-              </label>
-              <input
-                type="number"
-                value={settings.minWithdrawCoins || 100}
-                onChange={function (e) {
-                  handleChange('minWithdrawCoins', Number(e.target.value));
-                }}
-                className="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded text-sm"
-              />
-            </div>
-          </div>
+      <section className="space-y-2">
+        <p className="text-xs font-semibold text-purple-300 uppercase">
+          Download / Share
+        </p>
+        <label className="text-xs block">
+          App download URL
+          <input
+            className="w-full mt-1 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-sm"
+            value={settings.appDownloadUrl || ''}
+            onChange={function (e) {
+              text('appDownloadUrl', e.target.value);
+            }}
+          />
+        </label>
+        <label className="text-xs block">
+          Share message
+          <input
+            className="w-full mt-1 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-sm"
+            value={settings.shareMessage || ''}
+            onChange={function (e) {
+              text('shareMessage', e.target.value);
+            }}
+          />
+        </label>
+        <label className="text-xs block">
+          Max concurrent users
+          <input
+            type="number"
+            className="w-full mt-1 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5"
+            value={settings.maxConcurrentUsers}
+            onChange={function (e) {
+              num('maxConcurrentUsers', e.target.value);
+            }}
+          />
+        </label>
+      </section>
+
+      <section className="space-y-2">
+        <p className="text-xs font-semibold text-purple-300 uppercase">
+          Host coins
+        </p>
+        <div className="grid grid-cols-3 gap-2 text-xs">
+          <label>
+            Coins / ad view
+            <input
+              type="number"
+              className="w-full mt-1 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5"
+              value={settings.coinsPerAdView}
+              onChange={function (e) {
+                num('coinsPerAdView', e.target.value);
+              }}
+            />
+          </label>
+          <label>
+            Host pool %
+            <input
+              type="number"
+              className="w-full mt-1 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5"
+              value={settings.hostPoolPercent}
+              onChange={function (e) {
+                num('hostPoolPercent', e.target.value);
+              }}
+            />
+          </label>
+          <label>
+            Min withdraw
+            <input
+              type="number"
+              className="w-full mt-1 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5"
+              value={settings.minWithdrawCoins}
+              onChange={function (e) {
+                num('minWithdrawCoins', e.target.value);
+              }}
+            />
+          </label>
         </div>
+      </section>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="p-4 bg-slate-800/60 rounded-lg border border-slate-700 space-y-3">
-            <h3 className="text-xs font-bold text-slate-300 uppercase">
-              Expirations & Limits
-            </h3>
-            <div>
-              <label className="block text-xs text-slate-400 mb-1">
-                Text Expiry (Minutes)
-              </label>
-              <input
-                type="number"
-                step="0.5"
-                value={settings.textExpiryMinutes}
-                onChange={function (e) {
-                  handleChange('textExpiryMinutes', Number(e.target.value));
-                }}
-                className="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded text-sm"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-slate-400 mb-1">
-                Voice Daily Limit
-              </label>
-              <input
-                type="number"
-                value={settings.voiceDailyLimit}
-                onChange={function (e) {
-                  handleChange('voiceDailyLimit', Number(e.target.value));
-                }}
-                className="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded text-sm"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-slate-400 mb-1">
-                Max Voice Duration (Sec)
-              </label>
-              <input
-                type="number"
-                value={settings.maxVoiceDurationSec}
-                onChange={function (e) {
-                  handleChange('maxVoiceDurationSec', Number(e.target.value));
-                }}
-                className="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded text-sm"
-                required
-              />
-            </div>
-          </div>
-
-          <div className="p-4 bg-slate-800/60 rounded-lg border border-slate-700 space-y-3">
-            <h3 className="text-xs font-bold text-slate-300 uppercase">
-              Sessions & Thresholds
-            </h3>
-            <div>
-              <label className="block text-xs text-slate-400 mb-1">
-                Presence Timeout (Sec)
-              </label>
-              <input
-                type="number"
-                value={settings.presenceTimeoutSec}
-                onChange={function (e) {
-                  handleChange('presenceTimeoutSec', Number(e.target.value));
-                }}
-                className="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded text-sm"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-slate-400 mb-1">
-                Request Expiry (Sec)
-              </label>
-              <input
-                type="number"
-                value={settings.requestExpirySec}
-                onChange={function (e) {
-                  handleChange('requestExpirySec', Number(e.target.value));
-                }}
-                className="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded text-sm"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-slate-400 mb-1">
-                Inactive Threshold (Days)
-              </label>
-              <input
-                type="number"
-                value={settings.inactiveThresholdDays}
-                onChange={function (e) {
-                  handleChange('inactiveThresholdDays', Number(e.target.value));
-                }}
-                className="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded text-sm"
-                required
-              />
-            </div>
-          </div>
+      <section className="space-y-2">
+        <p className="text-xs font-semibold text-purple-300 uppercase">
+          Expirations & limits
+        </p>
+        <div className="grid grid-cols-2 gap-2 text-xs">
+          <label>
+            Text expiry (min)
+            <input
+              type="number"
+              step="0.5"
+              className="w-full mt-1 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5"
+              value={settings.textExpiryMinutes}
+              onChange={function (e) {
+                num('textExpiryMinutes', e.target.value);
+              }}
+            />
+          </label>
+          <label>
+            Presence timeout (sec)
+            <input
+              type="number"
+              className="w-full mt-1 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5"
+              value={settings.presenceTimeoutSec}
+              onChange={function (e) {
+                num('presenceTimeoutSec', e.target.value);
+              }}
+            />
+          </label>
+          <label>
+            Voice daily limit
+            <input
+              type="number"
+              className="w-full mt-1 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5"
+              value={settings.voiceDailyLimit}
+              onChange={function (e) {
+                num('voiceDailyLimit', e.target.value);
+              }}
+            />
+          </label>
+          <label>
+            Max voice (sec)
+            <input
+              type="number"
+              className="w-full mt-1 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5"
+              value={settings.maxVoiceDurationSec}
+              onChange={function (e) {
+                num('maxVoiceDurationSec', e.target.value);
+              }}
+            />
+          </label>
         </div>
+      </section>
 
-        <div className="p-4 bg-slate-800/60 rounded-lg border border-slate-700 space-y-3">
-          <h3 className="text-xs font-bold text-slate-300 uppercase">Rewards</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs text-slate-400 mb-1">
-                Reward Duration (Hours)
-              </label>
-              <input
-                type="number"
-                value={settings.rewardDurationHours}
-                onChange={function (e) {
-                  handleChange('rewardDurationHours', Number(e.target.value));
-                }}
-                className="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded text-sm"
-                required
-              />
-            </div>
-            <div className="flex items-center space-x-3 pt-6">
-              <input
-                type="checkbox"
-                id="rewardedAdsEnabled"
-                checked={!!settings.rewardedAdsEnabled}
-                onChange={function (e) {
-                  handleChange('rewardedAdsEnabled', e.target.checked);
-                }}
-                className="w-4 h-4 accent-blue-600 rounded"
-              />
-              <label
-                htmlFor="rewardedAdsEnabled"
-                className="text-xs font-medium text-slate-300"
-              >
-                Enable Rewarded Ads System
-              </label>
-            </div>
-          </div>
-        </div>
+      {msg ? (
+        <p className="text-xs text-emerald-400">{msg}</p>
+      ) : null}
 
-        <div className="flex justify-end">
-          <button
-            type="submit"
-            disabled={saving}
-            className="px-6 py-2 bg-blue-600 disabled:bg-slate-700 text-xs font-bold rounded-lg"
-          >
-            {saving ? 'Saving...' : 'Save System Settings'}
-          </button>
-        </div>
-      </form>
+      <button
+        type="button"
+        disabled={saving}
+        onClick={save}
+        className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-sm font-bold disabled:opacity-50"
+      >
+        {saving ? 'Saving…' : 'Save System Settings'}
+      </button>
     </div>
   );
 };
