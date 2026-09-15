@@ -19,6 +19,41 @@ import {
   UserReport,
 } from '../types/admin';
 
+const APP_SETTINGS_DEFAULTS = {
+  textExpiryMinutes: 2.5,
+  voiceDailyLimit: 25,
+  maxVoiceDurationSec: 60,
+  presenceTimeoutSec: 45,
+  requestExpirySec: 300,
+  inactiveThresholdDays: 30,
+  rewardDurationHours: 8,
+  rewardedAdsEnabled: false,
+  appDownloadUrl: '',
+  shareMessage: 'MystiQ — Anonymous chat',
+  maxConcurrentUsers: 80,
+  networkAdsEnabled: false,
+  bannerAlwaysOn: true,
+  interstitialOnEntry: true,
+  firstInterstitialAfterSec: 8,
+  interstitialIntervalSec: 600,
+  maxInterstitialsPerSession: 12,
+  firstAdAfterSec: 120,
+  adIntervalSec: 300,
+  maxAdsPerSession: 6,
+  coinsPerAdView: 1,
+  hostPoolPercent: 40,
+  minWithdrawCoins: 100,
+};
+
+function stripUndefined(obj: Record<string, unknown>) {
+  var out: Record<string, unknown> = {};
+  Object.keys(obj).forEach(function (k) {
+    var v = obj[k];
+    if (v !== undefined) out[k] = v;
+  });
+  return out;
+}
+
 export const logAdminAction = async (
   adminUid: string,
   role: AdminRole,
@@ -247,47 +282,65 @@ export const deleteAd = async (
   }
 };
 
-export const fetchAppSettings = async (): Promise<AppSettings> => {
-  const snapshot = await get(ref(rtdb, 'app_settings'));
-  const defaults: AppSettings = {
-    textExpiryMinutes: 2.5,
-    voiceDailyLimit: 25,
-    maxVoiceDurationSec: 60,
-    presenceTimeoutSec: 45,
-    requestExpirySec: 300,
-    inactiveThresholdDays: 30,
-    rewardDurationHours: 8,
-    rewardedAdsEnabled: false,
-    appDownloadUrl: 'https://mysti-q-flame.vercel.app',
-    shareMessage: 'MystiQ — Anonymous chat. Download / open here:',
-    maxConcurrentUsers: 85,
-    networkAdsEnabled: false,
-    firstAdAfterSec: 120,
-    adIntervalSec: 300,
-    maxAdsPerSession: 6,
-    coinsPerAdView: 1,
-    hostPoolPercent: 40,
-    minWithdrawCoins: 100,
-  };
-  if (!snapshot.exists()) return defaults;
-  return Object.assign({}, defaults, snapshot.val());
+export const fetchAppSettings = async function (): Promise<any> {
+  var snap = await get(ref(rtdb, 'app_settings'));
+  if (!snap.exists()) {
+    return Object.assign({}, APP_SETTINGS_DEFAULTS);
+  }
+  return Object.assign({}, APP_SETTINGS_DEFAULTS, snap.val());
 };
 
-export const updateAppSettings = async (
+export const updateAppSettings = async function (
   adminUid: string,
-  role: AdminRole,
-  settings: AppSettings
-) => {
-  await set(ref(rtdb, 'app_settings'), settings);
+  settings: any
+): Promise<void> {
+  var merged = Object.assign({}, APP_SETTINGS_DEFAULTS, settings || {});
+  var clean = stripUndefined(merged) as Record<string, unknown>;
+
+  // number ফিল্ড নিশ্চিত করো
+  var numKeys = [
+    'textExpiryMinutes',
+    'voiceDailyLimit',
+    'maxVoiceDurationSec',
+    'presenceTimeoutSec',
+    'requestExpirySec',
+    'inactiveThresholdDays',
+    'rewardDurationHours',
+    'maxConcurrentUsers',
+    'firstInterstitialAfterSec',
+    'interstitialIntervalSec',
+    'maxInterstitialsPerSession',
+    'firstAdAfterSec',
+    'adIntervalSec',
+    'maxAdsPerSession',
+    'coinsPerAdView',
+    'hostPoolPercent',
+    'minWithdrawCoins',
+  ];
+  numKeys.forEach(function (k) {
+    var n = Number(clean[k]);
+    if (isNaN(n)) n = (APP_SETTINGS_DEFAULTS as any)[k];
+    clean[k] = n;
+  });
+
+  clean.networkAdsEnabled = !!clean.networkAdsEnabled;
+  clean.bannerAlwaysOn = clean.bannerAlwaysOn !== false;
+  clean.interstitialOnEntry = clean.interstitialOnEntry !== false;
+  clean.rewardedAdsEnabled = !!clean.rewardedAdsEnabled;
+  clean.appDownloadUrl = String(clean.appDownloadUrl || '');
+  clean.shareMessage = String(clean.shareMessage || '');
+
+  await set(ref(rtdb, 'app_settings'), clean);
+
   try {
     await logAdminAction(
       adminUid,
-      role,
+      'super_admin',
       'UPDATE_APP_SETTINGS',
-      'Updated global settings'
+      'App settings updated'
     );
   } catch (e) {
-    console.warn('Audit log skipped', e);
+    console.warn(e);
   }
 };
 
@@ -472,3 +525,4 @@ export const countOnlineUsers = async (): Promise<number> => {
   });
   return Object.keys(unique).length;
 };
+    
