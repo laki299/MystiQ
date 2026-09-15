@@ -1,4 +1,4 @@
-import { ref, get } from 'firebase/database';
+import { ref, get, set, update, push } from 'firebase/database';
 import { rtdb } from '../config/firebase.config';
 import { AdNetworkConfig, AppSettings } from '../types/admin';
 import { fetchAppSettings } from './adminService';
@@ -17,6 +17,49 @@ export const fetchAdNetworks = async function (): Promise<AdNetworkConfig[]> {
     .sort(function (a, b) {
       return (a.order || 0) - (b.order || 0);
     });
+};
+
+export const fetchAllAdNetworksAdmin = async function (): Promise<
+  AdNetworkConfig[]
+> {
+  var snap = await get(ref(rtdb, 'ad_networks'));
+  if (!snap.exists()) return [];
+  var val = snap.val();
+  return Object.keys(val)
+    .map(function (k) {
+      return Object.assign({ id: k }, val[k]) as AdNetworkConfig;
+    })
+    .sort(function (a, b) {
+      return (a.order || 0) - (b.order || 0);
+    });
+};
+
+export const upsertAdNetwork = async function (
+  data: Omit<AdNetworkConfig, 'id'> & { id?: string }
+): Promise<string> {
+  if (data.id) {
+    await update(ref(rtdb, 'ad_networks/' + data.id), {
+      name: data.name,
+      scriptUrl: data.scriptUrl,
+      containerId: data.containerId || '',
+      type: data.type || 'script',
+      enabled: !!data.enabled,
+      weight: data.weight || 1,
+      order: data.order || 0,
+    });
+    return data.id;
+  }
+  var p = push(ref(rtdb, 'ad_networks'));
+  await set(p, {
+    name: data.name,
+    scriptUrl: data.scriptUrl,
+    containerId: data.containerId || '',
+    type: data.type || 'script',
+    enabled: !!data.enabled,
+    weight: data.weight || 1,
+    order: data.order || 0,
+  });
+  return p.key as string;
 };
 
 export const shouldShowNetworkAds = async function (): Promise<boolean> {
@@ -46,7 +89,7 @@ export const pickNetwork = function (
 export const getAdTiming = function (settings: AppSettings) {
   return {
     firstAdAfterSec: settings.firstAdAfterSec || 120,
-    adIntervalSec: settings.adIntervalSec || 240,
-    maxAdsPerSession: settings.maxAdsPerSession || 8,
+    adIntervalSec: settings.adIntervalSec || 300,
+    maxAdsPerSession: settings.maxAdsPerSession || 6,
   };
 };
