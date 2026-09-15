@@ -19,10 +19,30 @@ export interface AppSettings {
   appDownloadUrl: string;
   shareMessage: string;
   maxConcurrentUsers: number;
+
+  /** Master switch — OFF = কোনো নেটওয়ার্ক অ্যাড নয় */
   networkAdsEnabled: boolean;
+
+  /** চ্যাট চলাকালীন ছোট ব্যানার সবসময় */
+  bannerAlwaysOn: boolean;
+
+  /** অ্যাপে প্রথম ঢোকার পর ফুলস্ক্রিন */
+  interstitialOnEntry: boolean;
+
+  /** প্রথম ফুলস্ক্রিন কত সেকেন্ড পর (ডিফল্ট ৮) */
+  firstInterstitialAfterSec: number;
+
+  /** পরের ফুলস্ক্রিন প্রতি কত সেকেন্ড (ডিফল্ট ৬০০ = ১০ মিনিট) */
+  interstitialIntervalSec: number;
+
+  /** এক সেশনে ম্যাক্স ফুলস্ক্রিন */
+  maxInterstitialsPerSession: number;
+
+  /** লেগেসি / রিওয়ার্ডেড টাইমিং (ব্যবহার না করলেও সেভ থাকে) */
   firstAdAfterSec: number;
   adIntervalSec: number;
   maxAdsPerSession: number;
+
   coinsPerAdView: number;
   hostPoolPercent: number;
   minWithdrawCoins: number;
@@ -33,10 +53,16 @@ export interface AdNetworkConfig {
   name: string;
   scriptUrl: string;
   containerId?: string;
-  type?: 'script' | 'banner';
+  /**
+   * banner      = ছোট ব্যানার (চ্যাটে সবসময়)
+   * interstitial = ফুলস্ক্রিন / ভিডিও / পপ
+   * script      = জেনেরিক (ইন্টারস্টিশিয়াল ওয়াটারফলেও ব্যবহার)
+   */
+  type: 'banner' | 'interstitial' | 'script';
   enabled: boolean;
-  weight: number;
+  /** ওয়াটারফল অর্ডার — ছোট সংখ্যা আগে (1 = Monetag, 2 = পরের কোম্পানি…) */
   order: number;
+  weight: number;
 }
 
 export interface AdItem {
@@ -51,30 +77,40 @@ export interface AdItem {
 
 export interface CoinPool {
   totalCoins: number;
-  updatedAt: number;
+  updatedAt?: number;
 }
 
 export interface CoinLog {
   id: string;
-  type: 'ad_view' | 'admin_add' | 'admin_remove' | 'withdraw' | 'distribute';
-  uid?: string;
+  type: string;
   amount: number;
+  uid?: string;
   note?: string;
-  by?: string;
-  at: number;
+  createdAt: number;
 }
 
 export interface WithdrawRequest {
   id: string;
   uid: string;
-  username?: string;
   anonymousName?: string;
   amount: number;
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'pending' | 'approved' | 'rejected' | 'paid';
   note?: string;
   createdAt: number;
   reviewedAt?: number;
   reviewedBy?: string;
+}
+
+export interface RegisteredUserRow {
+  uid: string;
+  username: string;
+  anonymousName: string;
+  role?: string;
+  hostCoins?: number;
+  createdAt?: number;
+  lastActiveAt?: number;
+  gender?: string;
+  city?: string;
 }
 
 export interface UserReport {
