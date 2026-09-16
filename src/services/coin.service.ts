@@ -83,8 +83,7 @@ export async function distributePoolToHosts(
 ): Promise<{ distributed: number; hosts: number }> {
   const poolSnap = await get(ref(rtdb, 'coin_pool'));
   const pool = poolSnap.exists() ? poolSnap.val() : { totalCoins: 0 };
-  const total =
-    typeof pool.totalCoins === 'number' ? pool.totalCoins : 0;
+  const total = typeof pool.totalCoins === 'number' ? pool.totalCoins : 0;
   if (total <= 0) return { distributed: 0, hosts: 0 };
 
   const usersSnap = await get(ref(rtdb, 'users'));
@@ -94,7 +93,10 @@ export async function distributePoolToHosts(
   const hostUids: string[] = [];
   Object.keys(users).forEach((uid) => {
     const u = users[uid];
-    if (u && (u.role === 'host' || u.role === 'admin' || u.role === 'super_admin')) {
+    if (
+      u &&
+      (u.role === 'host' || u.role === 'admin' || u.role === 'super_admin')
+    ) {
       hostUids.push(uid);
     }
   });
@@ -167,7 +169,8 @@ export async function fetchWithdrawRequests(): Promise<WithdrawRequest[]> {
     .sort((a, b) => b.createdAt - a.createdAt);
 }
 
-export async function resolveWithdrawRequest(
+/** HostManager যে নামে ইমপোর্ট করে */
+export async function adminReviewWithdraw(
   requestId: string,
   status: 'approved' | 'rejected' | 'paid',
   adminUid: string,
@@ -180,18 +183,21 @@ export async function resolveWithdrawRequest(
     note: note || '',
   });
 
-  if (status === 'paid' || status === 'approved') {
+  if (status === 'paid') {
     const snap = await get(ref(rtdb, 'withdraw_requests/' + requestId));
     if (snap.exists()) {
       const req = snap.val();
       const uid = req.uid;
       const coins = req.amountCoins || 0;
-      if (uid && coins > 0 && status === 'paid') {
+      if (uid && coins > 0) {
         const userRef = ref(rtdb, 'users/' + uid);
         await runTransaction(userRef, (current) => {
           if (!current) return current;
           const c = typeof current.coins === 'number' ? current.coins : 0;
           current.coins = Math.max(0, c - coins);
+          if (typeof current.hostCoins === 'number') {
+            current.hostCoins = current.coins;
+          }
           return current;
         });
       }
@@ -199,7 +205,6 @@ export async function resolveWithdrawRequest(
   }
 }
 
-/** পুল-এ কয়েন যোগ (অ্যাডমিন/সিস্টেম) */
 export async function addToCoinPool(amount: number): Promise<void> {
   if (amount <= 0) return;
   const poolRef = ref(rtdb, 'coin_pool/totalCoins');
