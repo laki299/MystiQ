@@ -2,6 +2,7 @@ import { ref, get, set, update, push, increment } from 'firebase/database';
 import { rtdb } from '../config/firebase.config';
 import { CoinLog, WithdrawRequest } from '../types/admin';
 import { fetchAppSettings } from './adminService';
+import { recordPaidAdView } from './wallet.service';
 
 export const getHostCoins = async function (uid: string): Promise<number> {
   var snap = await get(ref(rtdb, 'users/' + uid + '/hostCoins'));
@@ -15,30 +16,15 @@ export const getCoinPool = async function (): Promise<number> {
   return Number(snap.val()) || 0;
 };
 
-export const recordAdViewCoins = async function (
-  viewerUid: string
-): Promise<void> {
-  var settings = await fetchAppSettings();
-  if (!settings.networkAdsEnabled) return;
-  var amount = settings.coinsPerAdView || 1;
-  if (amount <= 0) return;
-
-  await update(ref(rtdb), {
-    'coin_pool/totalCoins': increment(amount),
-    'coin_pool/updatedAt': Date.now(),
-  });
-
-  var logRef = push(ref(rtdb, 'coin_logs'));
-  var log: CoinLog = {
-    id: logRef.key || '',
-    type: 'ad_view',
-    uid: viewerUid,
-    amount: amount,
-    note: 'network_ad_view',
-    at: Date.now(),
-  };
-  await set(logRef, log);
-};
+/** NetworkAdRunner থেকে কল — MultiTag ভিউ */
+export async function recordAdViewCoins(viewerUid: string): Promise<void> {
+  if (!viewerUid) return;
+  try {
+    await recordPaidAdView(viewerUid);
+  } catch (e) {
+    console.warn('[recordAdViewCoins]', e);
+  }
+}
 
 export const adminAdjustHostCoins = async function (
   targetUid: string,
