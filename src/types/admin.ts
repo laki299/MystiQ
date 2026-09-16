@@ -20,30 +20,36 @@ export interface AppSettings {
   shareMessage: string;
   maxConcurrentUsers: number;
 
-  /** Master switch — OFF = কোনো নেটওয়ার্ক অ্যাড নয় */
   networkAdsEnabled: boolean;
-
-  /** চ্যাট চলাকালীন ছোট ব্যানার সবসময় */
   bannerAlwaysOn: boolean;
-
-  /** অ্যাপে প্রথম ঢোকার পর ফুলস্ক্রিন */
   interstitialOnEntry: boolean;
-
-  /** প্রথম ফুলস্ক্রিন কত সেকেন্ড পর (ডিফল্ট ৮) */
   firstInterstitialAfterSec: number;
-
-  /** পরের ফুলস্ক্রিন প্রতি কত সেকেন্ড (ডিফল্ট ৬০০ = ১০ মিনিট) */
   interstitialIntervalSec: number;
-
-  /** এক সেশনে ম্যাক্স ফুলস্ক্রিন */
   maxInterstitialsPerSession: number;
-
-  /** লেগেসি / রিওয়ার্ডেড টাইমিং (ব্যবহার না করলেও সেভ থাকে) */
   firstAdAfterSec: number;
   adIntervalSec: number;
   maxAdsPerSession: number;
 
+  /** 10 coins = 1 poisha → 1000 coins = 1 BDT */
+  coinsPerPoisha: number;
+
+  /** প্রতি MultiTag ভিউ — 1000 coins = 1 BDT */
   coinsPerAdView: number;
+
+  /** Adsterra rewarded (যদি চালু থাকে) */
+  coinsPerRewardedVideo: number;
+  rewardedAdsEnabledAdsterra: boolean;
+
+  /** রেফার: 10 BDT = 10000 coins */
+  referralBonusCoins: number;
+  referralBonusAdsRequired: number;
+  referralCommissionPercent: number;
+
+  /** উইথড্র */
+  minWithdrawBdt: number;
+  minActiveReferralsForWithdraw: number;
+  minChatMinutesPerDay: number;
+
   hostPoolPercent: number;
   minWithdrawCoins: number;
 }
@@ -52,17 +58,10 @@ export interface AdNetworkConfig {
   id: string;
   name: string;
   scriptUrl: string;
-  /** Monetag zone id — dataset.zone */
   zoneId?: string;
   containerId?: string;
-  /**
-   * banner      = ছোট ব্যানার (চ্যাটে সবসময়)
-   * interstitial = ফুলস্ক্রিন / ভিডিও / পপ
-   * script      = জেনেরিক (ইন্টারস্টিশিয়াল ওয়াটারফলেও ব্যবহার)
-   */
-  type: 'banner' | 'interstitial' | 'script';
+  type: 'banner' | 'interstitial' | 'script' | 'multitag' | 'rewarded';
   enabled: boolean;
-  /** ওয়াটারফল অর্ডার — ছোট সংখ্যা আগে (1 = Monetag, 2 = পরের কোম্পানি…) */
   order: number;
   weight: number;
 }
@@ -95,12 +94,18 @@ export interface WithdrawRequest {
   id: string;
   uid: string;
   anonymousName?: string;
-  amount: number;
+  username?: string;
+  amountBdt: number;
+  amountCoins: number;
+  method?: string;
+  accountNumber?: string;
   status: 'pending' | 'approved' | 'rejected' | 'paid';
   note?: string;
   createdAt: number;
   reviewedAt?: number;
   reviewedBy?: string;
+  activeReferrals?: number;
+  chatMinutesToday?: number;
 }
 
 export interface RegisteredUserRow {
@@ -109,10 +114,14 @@ export interface RegisteredUserRow {
   anonymousName: string;
   role?: string;
   hostCoins?: number;
+  coins?: number;
   createdAt?: number;
   lastActiveAt?: number;
   gender?: string;
   city?: string;
+  referralCode?: string;
+  adsWatchedTotal?: number;
+  qualifiedReferralsCount?: number;
 }
 
 export interface UserReport {
