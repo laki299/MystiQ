@@ -3,6 +3,8 @@ import {
   restoreSession,
   loginUser,
   registerUser,
+  loginWithUsername,
+  registerWithUsername,
   logoutUser,
 } from '../services/firebase/auth.service';
 import { UserProfile } from '../types/user.types';
@@ -38,7 +40,8 @@ export function useAuth() {
 
   const login = useCallback(async (username: string, password: string) => {
     setError(null);
-    const p = await loginUser(username, password);
+    const fn = loginUser || loginWithUsername;
+    const p = await fn(username, password);
     setProfile(p);
     return p;
   }, []);
@@ -50,7 +53,8 @@ export function useAuth() {
       extra?: { referralCode?: string }
     ) => {
       setError(null);
-      const p = await registerUser(username, password, extra);
+      const fn = registerUser || registerWithUsername;
+      const p = await fn(username, password, extra);
       setProfile(p);
       return p;
     },
