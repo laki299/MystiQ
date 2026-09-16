@@ -6,7 +6,6 @@ import {
   setPersistence,
   browserLocalPersistence,
   updateEmail,
-  User,
 } from 'firebase/auth';
 import { ref, get, set, update, remove } from 'firebase/database';
 import { auth, rtdb } from '../../config/firebase.config';
@@ -61,7 +60,6 @@ const loadProfile = async (uid: string): Promise<UserProfile | null> => {
   const profile = snap.val() as UserProfile;
   await update(ref(rtdb, `users/${uid}`), { lastActiveAt: Date.now() });
 
-  // রেফার কোড নিশ্চিত
   try {
     if (!profile.referralCode) {
       const code = await ensureReferralCode(uid, profile.username || 'user');
@@ -155,7 +153,6 @@ export const registerUser = async (
   if (extra?.referralCode) {
     await applyReferralOnRegister(uid, extra.referralCode, deviceId);
   } else {
-    // ডিভাইস মার্ক (মাল্টি অ্যাকাউন্ট কমাতে)
     try {
       await set(ref(rtdb, `devices/${deviceId}`), { uid, at: now });
     } catch (e) {
@@ -224,3 +221,7 @@ export const changeLoginUsername = async (
     lastProfileUpdate: Date.now(),
   });
 };
+
+/** আলিয়াস — পুরনো ইমপোর্ট নাম যাতে বিল্ড না ভাঙে */
+export const loginWithUsername = loginUser;
+export const registerWithUsername = registerUser;
