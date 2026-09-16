@@ -5,7 +5,13 @@ import { fetchAppSettings } from './adminService';
 
 function mapRow(k: string, row: any): AdNetworkConfig {
   var t = row.type;
-  if (t !== 'banner' && t !== 'interstitial' && t !== 'script') {
+  if (
+    t !== 'banner' &&
+    t !== 'interstitial' &&
+    t !== 'script' &&
+    t !== 'multitag' &&
+    t !== 'rewarded'
+  ) {
     t = 'script';
   }
   return {
@@ -93,12 +99,17 @@ export const getBannerNetworks = function (
     });
 };
 
+/** MultiTag + interstitial + script = টাইমড ইনজেক্ট */
 export const getInterstitialNetworks = function (
   networks: AdNetworkConfig[]
 ): AdNetworkConfig[] {
   return networks
     .filter(function (n) {
-      return n.type === 'interstitial' || n.type === 'script';
+      return (
+        n.type === 'interstitial' ||
+        n.type === 'script' ||
+        n.type === 'multitag'
+      );
     })
     .sort(function (a, b) {
       return a.order - b.order;
