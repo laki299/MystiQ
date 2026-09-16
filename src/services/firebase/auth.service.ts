@@ -11,195 +11,203 @@ import {
 import { ref, get, set, update, remove } from 'firebase/database';
 import { auth, rtdb } from '../../config/firebase.config';
 import { UserProfile } from '../../types/user.types';
+import {
+  ensureReferralCode,
+  applyReferralOnRegister,
+} from '../referral.service';
+import { getOrCreateDeviceId } from '../../utils/deviceId';
 
-function normalizeUsername(username: string) {
-  return username
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, '_')
-    .replace(/[^a-z0-9_]/g, '');
-}
+const AUTH_DOMAIN = 'mystiq.app';
 
-function toAuthEmail(username: string) {
-  var key = normalizeUsername(username);
-  return key + '@mystiq-b1a8c.firebaseapp.com';
-}
+const normalizeUsername = (username: string) =>
+  username.trim().toLowerCase().replace(/\s+/g, '_');
 
-function validateUsername(username: string) {
-  var u = username.trim();
+const toAuthEmail = (username: string) =>
+  `\( {normalizeUsername(username)}@ \){AUTH_DOMAIN}`;
+
+const validateUsername = (username: string): string | null => {
+  const u = username.trim();
   if (u.length < 3) return 'Username must be at least 3 characters';
   if (u.length > 20) return 'Username max 20 characters';
   if (!/^[a-zA-Z0-9_]+$/.test(u)) return 'Only letters, numbers, underscore';
   return null;
-}
+};
 
-function validatePassword(password: string) {
+const validatePassword = (password: string): string | null => {
   if (password.length < 6) return 'Password must be at least 6 characters';
   return null;
-}
+};
 
-function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
-  return new Promise(function (resolve, reject) {
-    var done = false;
-    var timer = setTimeout(function () {
-      if (done) return;
-      done = true;
-      reject(new Error(label + ' timed out. Check network and try again.'));
-    }, ms);
-    promise.then(
-      function (v) {
-        if (done) return;
-        done = true;
-        clearTimeout(timer);
-        resolve(v);
-      },
-      function (err) {
-        if (done) return;
-        done = true;
-        clearTimeout(timer);
-        reject(err);
-      }
-    );
-  });
-}
+const RANDOM_NAMES = [
+  'Shadow Soul',
+  'Moon Walker',
+  'Silent Heart',
+  'Mystic One',
+  'Dark Rose',
+  'Cosmic Nomad',
+  'Ocean Breeze',
+  'Velvet Echo',
+];
 
-async function loadProfile(uid: string) {
-  var snap = await withTimeout(
-    get(ref(rtdb, 'users/' + uid)),
-    10000,
-    'Profile load'
-  );
+const getRandomAnonymousName = (): string => {
+  const i = Math.floor(Math.random() * RANDOM_NAMES.length);
+  const n = Math.floor(1000 + Math.random() * 9000);
+  return `\( {RANDOM_NAMES[i]} # \){n}`;
+};
+
+const loadProfile = async (uid: string): Promise<UserProfile | null> => {
+  const snap = await get(ref(rtdb, `users/${uid}`));
   if (!snap.exists()) return null;
-  var profile = snap.val() as UserProfile;
-  try {
-    await update(ref(rtdb, 'users/' + uid), { lastActiveAt: Date.now() });
-  } catch (e) {
-    console.warn(e);
-  }
-  return Object.assign({}, profile, { lastActiveAt: Date.now() });
-}
+  const profile = snap.val() as UserProfile;
+  await update(ref(rtdb, `users/${uid}`), { lastActiveAt: Date.now() });
 
-export async function restoreSession() {
+  // রেফার কোড নিশ্চিত
   try {
-    await withTimeout(
-      setPersistence(auth, browserLocalPersistence),
-      8000,
-      'Auth persistence'
-    );
+    if (!profile.referralCode) {
+      const code = await ensureReferralCode(uid, profile.username || 'user');
+      profile.referralCode = code;
+    }
   } catch (e) {
     console.warn(e);
   }
 
-  var user = await withTimeout(
-    new Promise<User | null>(function (resolve) {
-      var unsub = onAuthStateChanged(auth, function (u) {
-        unsub();
-        resolve(u);
-      });
-    }),
-    12000,
-    'Session restore'
-  );
+  return { ...profile, lastActiveAt: Date.now() };
+};
 
-  if (!user) return null;
-  return loadProfile(user.uid);
-}
+export const restoreSession = async (): Promise<UserProfile | null> => {
+  await setPersistence(auth, browserLocalPersistence);
+  return new Promise((resolve) => {
+    const unsub = onAuthStateChanged(auth, async (user) => {
+      unsub();
+      if (!user) {
+        resolve(null);
+        return;
+      }
+      try {
+        const profile = await loadProfile(user.uid);
+        resolve(profile);
+      } catch {
+        resolve(null);
+      }
+    });
+  });
+};
 
-export async function registerWithUsername(
+export const registerUser = async (
   username: string,
   password: string,
-  displayName?: string
-) {
-  var userErr = validateUsername(username);
+  extra?: {
+    referralCode?: string;
+    age?: number;
+    gender?: string;
+  }
+): Promise<UserProfile> => {
+  const userErr = validateUsername(username);
   if (userErr) throw new Error(userErr);
-  var passErr = validatePassword(password);
+  const passErr = validatePassword(password);
   if (passErr) throw new Error(passErr);
 
-  var key = normalizeUsername(username);
-  var nameSnap = await get(ref(rtdb, 'usernames/' + key));
-  if (nameSnap.exists()) throw new Error('Username already taken');
+  const key = normalizeUsername(username);
+  const taken = await get(ref(rtdb, `usernames/${key}`));
+  if (taken.exists()) throw new Error('Username already taken');
 
   await setPersistence(auth, browserLocalPersistence);
-
-  var cred = await createUserWithEmailAndPassword(
+  const cred = await createUserWithEmailAndPassword(
     auth,
     toAuthEmail(username),
     password
   );
-  var uid = cred.user.uid;
-  var now = Date.now();
+  const uid = cred.user.uid;
+  const deviceId = getOrCreateDeviceId();
+  const now = Date.now();
 
-  var profile: UserProfile = {
-    uid: uid,
+  const profile: UserProfile = {
+    uid,
     username: username.trim(),
-    anonymousName:
-      displayName && displayName.trim()
-        ? displayName.trim()
-        : username.trim(),
-    avatar: '',
-    age: 0,
-    gender: 'unspecified',
+    anonymousName: getRandomAnonymousName(),
+    avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${uid}`,
+    age: extra?.age || 18,
+    gender: (extra?.gender as any) || 'unspecified',
     country: '',
     city: '',
-    language: 'en',
+    language: 'bn',
     profession: '',
     interests: [],
     bio: '',
     role: 'user',
+    coins: 0,
+    lifetimeCoins: 0,
+    adsWatchedTotal: 0,
+    activeReferralsCount: 0,
+    qualifiedReferralsCount: 0,
+    deviceId,
     createdAt: now,
     lastActiveAt: now,
-    lastProfileUpdate: now,
     accountStatus: 'active',
   };
 
-  await set(ref(rtdb, 'users/' + uid), profile);
-  await set(ref(rtdb, 'usernames/' + key), uid);
+  await set(ref(rtdb, `users/${uid}`), profile);
+  await set(ref(rtdb, `usernames/${key}`), uid);
+
+  const code = await ensureReferralCode(uid, username);
+  profile.referralCode = code;
+
+  if (extra?.referralCode) {
+    await applyReferralOnRegister(uid, extra.referralCode, deviceId);
+  } else {
+    // ডিভাইস মার্ক (মাল্টি অ্যাকাউন্ট কমাতে)
+    try {
+      await set(ref(rtdb, `devices/${deviceId}`), { uid, at: now });
+    } catch (e) {
+      console.warn(e);
+    }
+  }
 
   return profile;
-}
+};
 
-export async function loginWithUsername(username: string, password: string) {
+export const loginUser = async (
+  username: string,
+  password: string
+): Promise<UserProfile> => {
   if (!username.trim() || !password) {
     throw new Error('Enter username and password');
   }
-
   await setPersistence(auth, browserLocalPersistence);
-
-  var cred = await signInWithEmailAndPassword(
+  const cred = await signInWithEmailAndPassword(
     auth,
     toAuthEmail(username),
     password
   );
-
-  var profile = await loadProfile(cred.user.uid);
+  const profile = await loadProfile(cred.user.uid);
   if (!profile) throw new Error('Profile not found');
   return profile;
-}
+};
 
-export async function logoutUser() {
+export const logoutUser = async (): Promise<void> => {
   await signOut(auth);
-}
+};
 
-export async function changeLoginUsername(
+export const changeLoginUsername = async (
   uid: string,
   oldUsername: string,
   newUsername: string
-) {
-  var userErr = validateUsername(newUsername);
+): Promise<void> => {
+  const userErr = validateUsername(newUsername);
   if (userErr) throw new Error(userErr);
 
-  var oldKey = normalizeUsername(oldUsername);
-  var newKey = normalizeUsername(newUsername);
+  const oldKey = normalizeUsername(oldUsername);
+  const newKey = normalizeUsername(newUsername);
 
   if (oldKey === newKey) {
-    await update(ref(rtdb, 'users/' + uid), {
+    await update(ref(rtdb, `users/${uid}`), {
       username: newUsername.trim(),
       lastProfileUpdate: Date.now(),
     });
     return;
   }
 
-  var taken = await get(ref(rtdb, 'usernames/' + newKey));
+  const taken = await get(ref(rtdb, `usernames/${newKey}`));
   if (taken.exists() && taken.val() !== uid) {
     throw new Error('Username already taken');
   }
@@ -209,10 +217,10 @@ export async function changeLoginUsername(
   }
 
   await updateEmail(auth.currentUser, toAuthEmail(newUsername));
-  await remove(ref(rtdb, 'usernames/' + oldKey));
-  await set(ref(rtdb, 'usernames/' + newKey), uid);
-  await update(ref(rtdb, 'users/' + uid), {
+  await remove(ref(rtdb, `usernames/${oldKey}`));
+  await set(ref(rtdb, `usernames/${newKey}`), uid);
+  await update(ref(rtdb, `users/${uid}`), {
     username: newUsername.trim(),
     lastProfileUpdate: Date.now(),
   });
-}
+};
