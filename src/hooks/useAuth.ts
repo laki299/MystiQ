@@ -1,40 +1,36 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   restoreSession,
-  loginWithUsername,
-  registerWithUsername,
+  loginUser,
+  registerUser,
   logoutUser,
 } from '../services/firebase/auth.service';
 import { UserProfile } from '../types/user.types';
 
-export const useAuth = () => {
+export function useAuth() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
+
     (async () => {
+      setIsLoading(true);
+      setError(null);
       try {
-        const existing = await restoreSession();
+        const p = await restoreSession();
+        if (!cancelled) setProfile(p);
+      } catch (e: any) {
         if (!cancelled) {
-          setProfile(existing);
-          setError(null);
-        }
-      } catch (err: any) {
-        console.error(err);
-        if (!cancelled) {
+          setError(e?.message || 'Session restore failed');
           setProfile(null);
-          setError(
-            err && err.message
-              ? String(err.message)
-              : 'Could not restore session'
-          );
         }
       } finally {
         if (!cancelled) setIsLoading(false);
       }
     })();
+
     return () => {
       cancelled = true;
     };
@@ -42,15 +38,19 @@ export const useAuth = () => {
 
   const login = useCallback(async (username: string, password: string) => {
     setError(null);
-    const p = await loginWithUsername(username, password);
+    const p = await loginUser(username, password);
     setProfile(p);
     return p;
   }, []);
 
   const register = useCallback(
-    async (username: string, password: string, displayName?: string) => {
+    async (
+      username: string,
+      password: string,
+      extra?: { referralCode?: string }
+    ) => {
       setError(null);
-      const p = await registerWithUsername(username, password, displayName);
+      const p = await registerUser(username, password, extra);
       setProfile(p);
       return p;
     },
@@ -67,10 +67,8 @@ export const useAuth = () => {
     setProfile,
     isLoading,
     error,
-    setError,
     login,
     register,
     logout,
-    isLoggedIn: !!profile,
   };
-};
+}
