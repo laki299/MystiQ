@@ -3,7 +3,6 @@ import { rtdb } from '../config/firebase.config';
 import { recordPaidAdView } from './wallet.service';
 import { CoinPool, WithdrawRequest } from '../types/admin';
 
-/** NetworkAdRunner → ওয়ালেট কয়েন */
 export async function recordAdViewCoins(viewerUid: string): Promise<void> {
   if (!viewerUid) return;
   try {
@@ -169,7 +168,6 @@ export async function fetchWithdrawRequests(): Promise<WithdrawRequest[]> {
     .sort((a, b) => b.createdAt - a.createdAt);
 }
 
-/** HostManager যে নামে ইমপোর্ট করে */
 export async function adminReviewWithdraw(
   requestId: string,
   status: 'approved' | 'rejected' | 'paid',
@@ -177,7 +175,7 @@ export async function adminReviewWithdraw(
   note?: string
 ): Promise<void> {
   await update(ref(rtdb, 'withdraw_requests/' + requestId), {
-    status,
+    status: status,
     reviewedAt: Date.now(),
     reviewedBy: adminUid,
     note: note || '',
