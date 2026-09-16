@@ -1,8 +1,7 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from './hooks/useAuth';
 import { useExpiredCounter } from './hooks/useExpiredCounter';
 import { QuickSweepBanner } from './components/common/QuickSweepBanner';
-import { ServerFullScreen } from './components/common/ServerFullScreen';
 import { BottomNav, TabId } from './components/layout/BottomNav';
 import { HomeScreen } from './components/home/HomeScreen';
 import { DiscoverScreen } from './components/discover/DiscoverScreen';
@@ -11,63 +10,55 @@ import { ProfileScreen } from './components/profile/ProfileScreen';
 import { AdminProtectedRoute } from './components/admin/AdminProtectedRoute';
 import { AuthScreen } from './components/auth/AuthScreen';
 import { NetworkAdRunner } from './components/ads/NetworkAdRunner';
+import { ref, get } from 'firebase/database';
+import { rtdb } from './config/firebase.config';
 import { subscribeToIncomingRequests } from './services/firebase/request.service';
-import {
-  fetchAppSettings,
-  countOnlineUsers,
-} from './services/adminService';
-
-function checkIsAdmin(role: string | undefined) {
-  if (!role) return false;
-  return role === 'admin' || role === 'super_admin';
-}
 
 export const App: React.FC = function () {
   const authApi = useAuth();
   const profile = authApi.profile;
   const setProfile = authApi.setProfile;
   const isLoading = authApi.isLoading;
-  const authError = authApi.error;
   const login = authApi.login;
   const register = authApi.register;
   const logout = authApi.logout;
 
   const [tab, setTab] = useState<TabId>('home');
   const [isAdminView, setIsAdminView] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [requestCount, setRequestCount] = useState(0);
-  const [serverFull, setServerFull] = useState(false);
-  const [onlineCount, setOnlineCount] = useState(0);
-  const [maxUsers, setMaxUsers] = useState(85);
-  const [capacityChecked, setCapacityChecked] = useState(false);
-
-  const isAdmin = profile ? checkIsAdmin(profile.role) : false;
 
   const sweep = useExpiredCounter(profile ? profile.uid : null);
   const count = sweep.count;
   const executeSweep = sweep.executeSweep;
   const isDeleting = sweep.isDeleting;
 
-  const checkCapacity = useCallback(
-    async function () {
-      if (!profile) return;
-      if (checkIsAdmin(profile.role)) {
-        setServerFull(false);
-        setCapacityChecked(true);
+  useEffect(
+    function () {
+      if (!profile) {
+        setIsAdmin(false);
         return;
       }
-      try {
-        var settings = await fetchAppSettings();
-        var max = settings.maxConcurrentUsers || 85;
-        setMaxUsers(max);
-        var online = await countOnlineUsers();
-        setOnlineCount(online);
-        setServerFull(online >= max);
-      } catch (err) {
-        console.error(err);
-        setServerFull(false);
-      } finally {
-        setCapacityChecked(true);
-      }
+
+      var cancelled = false;
+
+      (async function () {
+        try {
+          var role = profile.role;
+          if (role === 'admin' || role === 'super_admin') {
+            if (!cancelled) setIsAdmin(true);
+            return;
+          }
+          var adminSnap = await get(ref(rtdb, 'admins/' + profile.uid));
+          if (!cancelled) setIsAdmin(adminSnap.exists());
+        } catch {
+          if (!cancelled) setIsAdmin(false);
+        }
+      })();
+
+      return function () {
+        cancelled = true;
+      };
     },
     [profile]
   );
@@ -75,40 +66,27 @@ export const App: React.FC = function () {
   useEffect(
     function () {
       if (!profile) {
-        setCapacityChecked(false);
-        setServerFull(false);
+        setRequestCount(0);
         return;
       }
-      checkCapacity();
-    },
-    [profile ? profile.uid : '', checkCapacity]
-  );
-
-  useEffect(
-    function () {
-      if (!profile || !profile.uid) return;
       var unsub = subscribeToIncomingRequests(profile.uid, function (list) {
         setRequestCount(list.length);
       });
       return function () {
-        unsub();
+        if (typeof unsub === 'function') unsub();
       };
     },
-    [profile ? profile.uid : '']
+    [profile]
   );
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4">
-        <div className="text-center space-y-3 max-w-xs">
-          <div className="w-10 h-10 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-sm font-bold text-purple-300 tracking-wide">
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="text-center space-y-2">
+          <p className="text-purple-400 font-extrabold text-lg tracking-wide">
             MYSTIQ
           </p>
-          <p className="text-xs text-slate-400">Connecting…</p>
-          {authError ? (
-            <p className="text-[11px] text-amber-400 mt-2">{authError}</p>
-          ) : null}
+          <p className="text-xs text-slate-500">Loading…</p>
         </div>
       </div>
     );
@@ -116,63 +94,33 @@ export const App: React.FC = function () {
 
   if (!profile) {
     return (
-      <div className="min-h-screen bg-slate-950">
-        {authError ? (
-          <div className="max-w-md mx-auto px-4 pt-4">
-            <div className="rounded-xl border border-amber-500/40 bg-amber-950/30 px-3 py-2 text-[11px] text-amber-200">
-              {authError}
-            </div>
-          </div>
-        ) : null}
-        <AuthScreen
-          onLogin={async function (u, p) {
-            await login(u, p);
-          }}
-          onRegister={async function (u, p, d) {
-            await register(u, p, d);
-          }}
-        />
-      </div>
-    );
-  }
-
-  if (capacityChecked && serverFull && !isAdmin) {
-    return (
-      <ServerFullScreen
-        onlineCount={onlineCount}
-        maxUsers={maxUsers}
-        onRetry={function () {
-          setCapacityChecked(false);
-          checkCapacity();
+      <AuthScreen
+        onLogin={async function (u, p) {
+          await login(u, p);
         }}
-        onLogout={logout}
+        onRegister={async function (u, p, extra) {
+          await register(u, p, extra);
+        }}
       />
     );
   }
 
   if (isAdminView && isAdmin) {
     return (
-      <div className="min-h-screen bg-slate-950">
-        <div className="p-4 max-w-7xl mx-auto flex justify-between items-center bg-slate-900/80 border-b border-slate-800">
-          <span className="text-sm font-bold text-indigo-400">MystiQ Admin</span>
-          <button
-            type="button"
-            onClick={function () {
-              setIsAdminView(false);
-            }}
-            className="px-3 py-1.5 bg-slate-800 text-slate-200 text-xs font-semibold rounded-lg border border-slate-700"
-          >
-            Back to App
-          </button>
-        </div>
-        <AdminProtectedRoute currentUid={profile.uid} />
-      </div>
+      <AdminProtectedRoute
+        profile={profile}
+        onBack={function () {
+          setIsAdminView(false);
+        }}
+      />
     );
   }
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
-      <div className="max-w-md mx-auto px-4 pt-4 relative min-h-screen">
+      <NetworkAdRunner uid={profile.uid} isAdmin={isAdmin} />
+
+      <div className="max-w-md mx-auto px-3 pt-3 pb-24">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-lg font-extrabold text-purple-400 tracking-wide">
             MYSTIQ
@@ -214,8 +162,6 @@ export const App: React.FC = function () {
             onLogout={logout}
           />
         ) : null}
-
-        <NetworkAdRunner uid={profile.uid} isAdmin={isAdmin} />
 
         <QuickSweepBanner
           count={count}
