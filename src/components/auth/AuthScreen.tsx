@@ -1,150 +1,157 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { getRefCodeFromUrl } from '../../utils/deviceId';
 
 interface AuthScreenProps {
   onLogin: (username: string, password: string) => Promise<void>;
   onRegister: (
     username: string,
     password: string,
-    displayName?: string
+    extra?: { referralCode?: string }
   ) => Promise<void>;
 }
 
-export const AuthScreen: React.FC<AuthScreenProps> = ({
-  onLogin,
-  onRegister,
-}) => {
-  const [mode, setMode] = useState<'login' | 'register'>('login');
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [displayName, setDisplayName] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+export const AuthScreen: React.FC<AuthScreenProps> = function (props) {
+  var onLogin = props.onLogin;
+  var onRegister = props.onRegister;
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  var [mode, setMode] = useState<'login' | 'register'>('login');
+  var [username, setUsername] = useState('');
+  var [password, setPassword] = useState('');
+  var [refCode, setRefCode] = useState('');
+  var [error, setError] = useState('');
+  var [busy, setBusy] = useState(false);
+
+  useEffect(function () {
+    var fromUrl = getRefCodeFromUrl();
+    if (fromUrl) {
+      setRefCode(fromUrl);
+      setMode('register');
+    }
+  }, []);
+
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
+    setError('');
     setBusy(true);
-    setError(null);
     try {
       if (mode === 'login') {
         await onLogin(username, password);
       } else {
-        await onRegister(username, password, displayName || username);
+        await onRegister(username, password, {
+          referralCode: refCode.trim() || undefined,
+        });
       }
     } catch (err: any) {
-      const msg = err?.code
-        ? String(err.code).replace('auth/', '').replace(/-/g, ' ')
-        : err?.message || 'Something went wrong';
-      setError(msg);
+      setError(err && err.message ? String(err.message) : 'Failed');
     } finally {
       setBusy(false);
     }
-  };
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
-      <div className="w-full max-w-sm space-y-6">
+      <div className="w-full max-w-sm space-y-5">
         <div className="text-center space-y-1">
-          <h1 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-indigo-400">
-            MystiQ
+          <h1 className="text-2xl font-extrabold text-purple-400 tracking-wide">
+            MYSTIQ
           </h1>
-          <p className="text-xs text-slate-400">
-            Anonymous chat — your identity stays yours
-          </p>
+          <p className="text-xs text-slate-400">Anonymous · Private · Chat</p>
         </div>
 
-        <div className="flex rounded-xl bg-slate-900 border border-slate-800 p-1">
+        <div className="flex rounded-xl overflow-hidden border border-slate-800">
           <button
             type="button"
-            onClick={() => {
+            onClick={function () {
               setMode('login');
-              setError(null);
             }}
-            className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${
-              mode === 'login' ? 'bg-purple-600 text-white' : 'text-slate-400'
-            }`}
+            className={
+              'flex-1 py-2.5 text-sm font-bold ' +
+              (mode === 'login'
+                ? 'bg-purple-600 text-white'
+                : 'bg-slate-900 text-slate-400')
+            }
           >
             Login
           </button>
           <button
             type="button"
-            onClick={() => {
+            onClick={function () {
               setMode('register');
-              setError(null);
             }}
-            className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${
-              mode === 'register' ? 'bg-purple-600 text-white' : 'text-slate-400'
-            }`}
+            className={
+              'flex-1 py-2.5 text-sm font-bold ' +
+              (mode === 'register'
+                ? 'bg-purple-600 text-white'
+                : 'bg-slate-900 text-slate-400')
+            }
           >
-            Create Account
+            Register
           </button>
         </div>
 
         <form
-          onSubmit={handleSubmit}
-          className="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 space-y-3"
+          onSubmit={submit}
+          className="space-y-3 bg-slate-900 border border-slate-800 rounded-2xl p-4"
         >
-          {mode === 'register' && (
-            <div>
-              <label className="text-[11px] text-slate-400 block mb-1">
-                Display name (optional)
-              </label>
-              <input
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                placeholder="Shown in chat"
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-purple-500"
-              />
-            </div>
-          )}
-
-          <div>
-            <label className="text-[11px] text-slate-400 block mb-1">Username</label>
+          <label className="block text-xs text-slate-400">
+            Username
             <input
+              className="mt-1 w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white"
               value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="e.g. mystic_soul"
-              autoComplete="username"
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-purple-500"
+              onChange={function (e) {
+                setUsername(e.target.value);
+              }}
+              autoCapitalize="off"
+              autoCorrect="off"
               required
             />
-          </div>
+          </label>
 
-          <div>
-            <label className="text-[11px] text-slate-400 block mb-1">Password</label>
+          <label className="block text-xs text-slate-400">
+            Password
             <input
               type="password"
+              className="mt-1 w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Min 6 characters"
-              autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-purple-500"
+              onChange={function (e) {
+                setPassword(e.target.value);
+              }}
               required
             />
-          </div>
+          </label>
 
-          {error && (
-            <p className="text-xs text-rose-400 bg-rose-950/40 border border-rose-800/40 rounded-lg px-3 py-2">
+          {mode === 'register' ? (
+            <label className="block text-xs text-slate-400">
+              Referral code (optional)
+              <input
+                className="mt-1 w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white uppercase"
+                value={refCode}
+                onChange={function (e) {
+                  setRefCode(e.target.value.toUpperCase());
+                }}
+                placeholder="Friend code"
+              />
+            </label>
+          ) : null}
+
+          {error ? (
+            <p className="text-xs text-rose-400 bg-rose-950/40 border border-rose-900 rounded-lg px-2 py-1.5">
               {error}
             </p>
-          )}
+          ) : null}
 
           <button
             type="submit"
             disabled={busy}
-            className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-sm font-bold disabled:opacity-50"
+            className="w-full py-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-sm font-bold text-white disabled:opacity-50"
           >
             {busy
-              ? 'Please wait...'
+              ? 'Please wait…'
               : mode === 'login'
-              ? 'Login'
-              : 'Create Account'}
+                ? 'Login'
+                : 'Create account'}
           </button>
         </form>
-
-        <p className="text-[10px] text-slate-600 text-center leading-relaxed">
-          Once logged in, you stay logged in on this device. Use the same
-          username & password on any phone.
-        </p>
       </div>
     </div>
   );
