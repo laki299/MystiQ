@@ -6,6 +6,7 @@
     "users": {
       ".read": "auth != null",
       "$uid": {
+        ".read": "auth != null",
         ".write": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin' || root.child('admins').hasChild(auth.uid))"
       }
     },
@@ -13,7 +14,7 @@
     "usernames": {
       "$name": {
         ".read": true,
-        ".write": "auth != null && ((!data.exists() && newData.val() === auth.uid) || (data.exists() && data.val() === auth.uid))"
+        ".write": "auth != null && ((!data.exists() && newData.val() === auth.uid) || (data.exists() && data.val() === auth.uid) || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin')"
       }
     },
 
@@ -75,28 +76,33 @@
     "admins": {
       ".read": "auth != null",
       "$uid": {
-        ".write": "auth != null"
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'super_admin' || root.child('admins').child(auth.uid).child('role').val() === 'super_admin')"
       }
     },
 
     "app_settings": {
       ".read": true,
-      ".write": "auth != null"
+      ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin' || root.child('admins').hasChild(auth.uid))"
     },
 
     "ads": {
       ".read": true,
-      ".write": "auth != null"
+      ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin' || root.child('admins').hasChild(auth.uid))"
     },
 
     "ads_config": {
       ".read": true,
-      ".write": "auth != null"
+      ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin' || root.child('admins').hasChild(auth.uid))"
     },
 
     "ad_networks": {
       ".read": "auth != null",
-      ".write": "auth != null"
+      ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin' || root.child('admins').hasChild(auth.uid))"
+    },
+
+    "audit_logs": {
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin' || root.child('admins').hasChild(auth.uid))",
+      ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin' || root.child('admins').hasChild(auth.uid))"
     },
 
     "coin_pool": {
@@ -104,19 +110,41 @@
       ".write": "auth != null"
     },
 
-    "coin_logs": {
-      ".read": "auth != null",
-      ".write": "auth != null"
-    },
-
     "withdraw_requests": {
       ".read": "auth != null",
-      ".write": "auth != null"
+      "$id": {
+        ".write": "auth != null"
+      }
     },
 
-    "audit_logs": {
-      ".read": "auth != null",
-      ".write": "auth != null"
+    "referral_codes": {
+      "$code": {
+        ".read": true,
+        ".write": "auth != null"
+      }
+    },
+
+    "referral_edges": {
+      "$referrerUid": {
+        ".read": "auth != null && (auth.uid === $referrerUid || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin' || root.child('admins').hasChild(auth.uid))",
+        "$referredUid": {
+          ".write": "auth != null"
+        }
+      }
+    },
+
+    "wallet_ledger": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin' || root.child('admins').hasChild(auth.uid))",
+        ".write": "auth != null"
+      }
+    },
+
+    "devices": {
+      "$deviceId": {
+        ".read": "auth != null",
+        ".write": "auth != null"
+      }
     }
   }
 }
